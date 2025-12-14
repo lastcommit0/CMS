@@ -15,9 +15,95 @@ datasource db {
 
 
 model User {
-  id             String   @id @default(cuid())
+  id             String     @id @default(cuid())
+
   firstName      String
-  email          String   @unique
-  phone          String   @unique
-  password       String
+  lastName       String?
+
+  email          String     @unique
+  phone          String     @unique
+
+  passwordHash   String
+  role           Role
+  status         UserStatus @default(ACTIVE)
+
+  // 🔹 Reporting hierarchy
+  managerId      String?
+  manager        User?      @relation("UserManager", fields: [managerId], references: [id])
+  subordinates   User[]     @relation("UserManager")
+
+  // 🔹 Profile & sessions
+  profile        UserProfile?
+  sessions       Session[]
+
+  // 🔹 Audit / creation
+  createdById    String?
+  createdBy      User?      @relation("UserCreator", fields: [createdById], references: [id])
+  createdUsers   User[]     @relation("UserCreator")
+
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+
+model UserProfile {
+  id           String      @id @default(cuid())
+  userId       String      @unique
+
+  designation  Designation
+  jobType      JobType
+
+  location     String?
+  bio          String?
+  avatar       String?
+
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+
+model Session {
+  id               String   @id @default(uuid())
+  userId           String
+
+  refreshTokenHash String
+  device           String?
+  ipAddress        String?
+
+  expiresAt        DateTime
+  revoked          Boolean  @default(false)
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt        DateTime @default(now())
+}
+
+
+enum Role {
+  ADMIN
+  SUB_ADMIN
+  EDITOR
+}
+
+enum Designation {
+  EDITOR_IN_CHIEF
+  MANAGING_EDITOR
+  EDITOR
+  WRITER
+  CONTRIBUTOR
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  INTERN
+  FREELANCE
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
 }
