@@ -1,96 +1,131 @@
-import logo from "../assets/icons/logo.svg"
-import layout from "../assets/icons/layout.svg"
-import users from "../assets/icons/users.svg"
-import text from "../assets/icons/text.svg"
-import tool from "../assets/icons/tool.svg"
-import huge from "../assets/icons/huge.svg"
-import { useState } from "react"
-
+import logo from "../assets/icons/logo.svg";
+import layout from "../assets/icons/layout.svg";
+import users from "../assets/icons/users.svg";
+import text from "../assets/icons/text.svg";
+import tool from "../assets/icons/tool.svg";
+import huge from "../assets/icons/huge.svg";
+import { NavLink, useLocation } from "react-router-dom";
 
 const menuItems = [
-    {
-        id: "dashboard",
-        label: "Dashboard",
-        icon: layout,
-        subItems: []
-    },
-    {
-        id: "story",
-        label: "Story Management",
-        icon: text,
-        subItems: ["Add Story", "View Story", "View Schedule Story", "E-Paper PDF List", "Create Poll", "Video List", "Contact List"]
-    },
-    {
-        id: "priority",
-        label: "Priority Management",
-        icon: huge,
-        subItems: []
-    },
-    {
-        id: "tools",
-        label: "Tools",
-        icon: tool,
-        subItems: ["Category Management", "Meta Management", "Download Report"]
-    },
-    {
-        id: "users",
-        label: "User Management",
-        icon: users,
-        subItems: ["User Access Management", "Admin User List", "Users"]
-    }
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: layout,
+    path: "/dashboard",
+  },
+  {
+    id: "stories",
+    label: "Story Management",
+    icon: text,
+    path: "/stories",
+    subItems: [
+      { label: "Add Story", path: "add" },
+      { label: "View Story", path: "view" },
+      { label: "View Schedule Story", path: "view-schedule" },
+      { label: "E-Paper PDF List", path: "pdf-list" },
+      { label: "Create Poll", path: "create-poll" },
+      { label: "Video List", path: "video-list" },
+      { label: "Contact List", path: "contact-list" },
+    ],
+  },
+  {
+    id: "priority",
+    label: "Priority Management",
+    icon: huge,
+    path: "/priority",
+  },
+  {
+    id: "tools",
+    label: "Tools",
+    icon: tool,
+    path: "/tools",
+    subItems: [
+      { label: "Category Management", path: "category-management" },
+      { label: "Meta Management", path: "meta-management" },
+      { label: "Download Report", path: "download-report" },
+    ],
+  },
+  {
+    id: "users",
+    label: "User Management",
+    icon: users,
+    path: "/users",
+    subItems: [
+      { label: "User Access Management", path: "user-access-management" },
+      { label: "Admin User List", path: "admin-user-list" },
+      { label: "Users", path: "users" },
+    ],
+  },
 ];
 
-
 export default function Sidebar() {
+  const location = useLocation();
 
-    const [activeMenu, setActiveMenu] = useState("dashboard");
+  // Detect which parent menu is active from URL
+  const activeMenu = menuItems.find(item =>
+    location.pathname.startsWith(item.path)
+  );
 
-    // Helper to get the sub-items of the currently active menu
-    const activeSubItems = menuItems.find(item => item.id === activeMenu)?.subItems || [];
+  return (
+    <div className="fixed top-0 flex min-h-screen">
+      {/* MAIN SIDEBAR */}
+      <aside className="w-36 h-screen bg-[#1c1c1f] text-white flex flex-col items-center py-6">
+        <div className="flex flex-col items-center gap-6 w-full">
+          {/* LOGO */}
+          <div className="flex items-center gap-2">
+            <img src={logo} className="w-11" />
+            <h3 className="text-xs uppercase font-semibold leading-none">
+              <span>Uttar</span>
+              <span className="block">Pradesh</span>
+              <span>Times</span>
+            </h3>
+          </div>
 
-    return (
-        <aside className="w-36 h-screen bg-[#1c1c1f] text-white flex flex-col items-center py-6">
-            <div className="flex flex-col items-center gap-4">
-                <div className="flex flex-row items-center gap-1">
-                    <img 
-                        src={logo} 
-                        alt="Uttar Pradesh Times Logo" 
-                        className="w-11 h-auto object-contain" 
-                    />
+          {/* MENU */}
+          <div className="flex flex-col gap-2 w-full px-2">
+            {menuItems.map(item => (
+              <NavLink
+                key={item.id}
+                to={item.path}
+                className={({ isActive }) =>
+                  `flex flex-col items-center gap-1 py-3 rounded-md transition
+                  ${isActive ? "bg-[#35353a]" : "hover:bg-[#313338]/60"}`
+                }
+              >
+                <img src={item.icon} className="w-6 opacity-90" />
+                <span className="text-[11px] text-center">{item.label}</span>
+              </NavLink>
+            ))}
+          </div>
+        </div>
 
-                    <h3 className="flex flex-col items-start justify-center text-white font-semibold uppercase tracking-wide leading-none text-xs">
-                        <span>Uttar</span>
-                        <span>Pradesh</span>
-                        <span>Times</span>
-                    </h3>
-                </div>
-                <div className="flex flex-col gap-2 w-full">
-                    {menuItems.map((item) => (
-                        <button
-                            key={item.id}
-                            onClick={() => setActiveMenu(item.id)}
-                            className={`flex flex-col items-center justify-center gap-1 rounded-md w-full py-3 px-4 transition-colors duration-200 
-                                ${activeMenu === item.id ? "bg-[#313338]" : "hover:bg-[#313338] hover:bg-opacity-50"}`}
-                        >
-                            <img src={item.icon} alt={item.label} className="w-6 m-1 h-auto object-contain opacity-90" />
-                            <span className="text-white tracking-wide leading-none text-[11px] text-center mt-1">
-                                {item.label}
-                            </span>
-                        </button>
-                    ))}
-                </div>
-            </div>
-            <div className="w-full bottom-0 pt-32 mt-auto">
-                <div className="h-px w-full bg-[#313338]" />
-            </div>
-            <div className="mt-auto flex flex-col items-center pt-4 ">
-                <div className="w-9 h-9 rounded-full bg-yellow-500 flex items-center justify-center text-xs font-bold text-black">
-                SB
-                </div>
-                <span className="text-gray-400 text-[10px] tracking-wide">
-                Logout
-                </span>
-            </div>
+        {/* FOOTER */}
+        <div className="mt-auto flex flex-col items-center gap-2">
+          <div className="w-9 h-9 rounded-full bg-yellow-500 flex items-center justify-center font-bold text-black text-xs">
+            SB
+          </div>
+          <span className="text-[10px] text-gray-400">Logout</span>
+        </div>
+      </aside>
+        <div className="bg-black">
+      {/* SUBMENU */}
+      {activeMenu?.subItems && (
+        <aside className="w-56 bg-[#1c1c1f] border-r border-gray-700/30 pt-4">
+          {activeMenu.subItems.map(sub => (
+            <NavLink
+              key={sub.path}
+              to={`${activeMenu.path}/${sub.path}`}
+              className={({ isActive }) =>
+                `block px-4 py-2 text-sm rounded-md mx-2 mb-1 transition
+                ${isActive ? "bg-[#242428] text-white" : "text-gray-300 hover:bg-[#313338]/60"}`
+              }
+            >
+              {sub.label}
+            </NavLink>
+          ))}
         </aside>
-    )
+      )}
+      </div>
+    </div>
+  );
 }

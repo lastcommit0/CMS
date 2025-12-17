@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { LayoutDashboard, FileText, Flag, Users, Search, Calendar } from "lucide-react"
 
-// Sample data for the table
+
 const newsData = [
   {
     id: "1998498",
@@ -114,78 +114,12 @@ const newsData = [
 ]
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState("dashboard")
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="w-[90px] bg-[#1a1a2e] text-white flex flex-col items-center py-6">
-        {/* Logo */}
-        <div className="mb-8">
-          <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded flex items-center justify-center">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-7 h-7 text-white">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-              />
-            </svg>
-          </div>
-        </div>
-
-        {/* Navigation Items */}
-        <nav className="flex-1 flex flex-col gap-2 w-full px-3">
-          <button
-            onClick={() => setActiveTab("dashboard")}
-            className={`flex flex-col items-center gap-2 py-4 px-2 rounded-lg transition-colors ${
-              activeTab === "dashboard" ? "bg-[#2a2a3e]" : "hover:bg-[#2a2a3e]"
-            }`}
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            <span className="text-[10px] text-center leading-tight">Dashboard</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("story")}
-            className={`flex flex-col items-center gap-2 py-4 px-2 rounded-lg transition-colors ${
-              activeTab === "story" ? "bg-[#2a2a3e]" : "hover:bg-[#2a2a3e]"
-            }`}
-          >
-            <FileText className="w-5 h-5" />
-            <span className="text-[10px] text-center leading-tight">Story Management</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("priority")}
-            className={`flex flex-col items-center gap-2 py-4 px-2 rounded-lg transition-colors ${
-              activeTab === "priority" ? "bg-[#2a2a3e]" : "hover:bg-[#2a2a3e]"
-            }`}
-          >
-            <Flag className="w-5 h-5" />
-            <span className="text-[10px] text-center leading-tight">Priority Management</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("user")}
-            className={`flex flex-col items-center gap-2 py-4 px-2 rounded-lg transition-colors ${
-              activeTab === "user" ? "bg-[#2a2a3e]" : "hover:bg-[#2a2a3e]"
-            }`}
-          >
-            <Users className="w-5 h-5" />
-            <span className="text-[10px] text-center leading-tight">User Management</span>
-          </button>
-        </nav>
-
-        {/* Logout Button */}
-        <button className="flex flex-col items-center gap-2 py-4 px-2 rounded-full bg-orange-500 hover:bg-orange-600 transition-colors w-12 h-12 justify-center mb-4">
-          <span className="text-sm font-semibold">SB</span>
-        </button>
-        <button className="text-[10px] hover:text-orange-400 transition-colors">Logout</button>
-      </aside>
+    <div className=" min-h-screen bg-gray-50">
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex h-full w-full flex-1 flex-col gap-2 rounded-tl-2xl border border-neutral-200 bg-white p-2 md:p-10 dark:border-neutral-700 dark:bg-neutral-900">
         {/* Header */}
         <header className="flex flex-row justify-between bg-white border-b border-gray-200 px-8 pt-4">
           <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>

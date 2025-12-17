@@ -1,8 +1,7 @@
-import React, { type ReactNode } from "react";
 import Section from "./ui/Section";
-/* =========================
-   MAIN COMPONENT
-========================= */
+import Textarea from "./ui/TextArea";
+import TwoCol from "./ui/TwoCol";
+
 
 export default function AddNewUser() {
   return (
@@ -21,9 +20,7 @@ export default function AddNewUser() {
           </button>
         </div>
 
-        {/* BODY */}
         <div className="space-y-6 px-6 py-4">
-          {/* PROFILE UPLOAD */}
           <div className="flex items-center gap-4">
             <img
               src="https://i.pravatar.cc/80"
@@ -43,7 +40,6 @@ export default function AddNewUser() {
             </div>
           </div>
 
-          {/* BASIC INFO */}
           <Section title="Basic Info">
             <TwoCol>
               <Input label="First Name" required />
@@ -61,7 +57,6 @@ export default function AddNewUser() {
             <Textarea label="Profile Summary" required />
           </Section>
 
-          {/* PROFESSIONAL INFO */}
           <Section title="Professional Info">
             <TwoCol>
               <Select label="Job Type" required />
@@ -75,7 +70,6 @@ export default function AddNewUser() {
           </Section>
         </div>
 
-        {/* FOOTER */}
         <div className="sticky bottom-0 border-t bg-white px-6 py-4">
           <button
             type="submit"
@@ -89,34 +83,12 @@ export default function AddNewUser() {
   );
 }
 
-/* =========================
-   TYPES
-========================= */
 
-
-interface WrapperProps {
-  children: ReactNode;
-}
 
 interface InputProps {
   label: string;
   required?: boolean;
   type?: React.HTMLInputTypeAttribute;
-}
-
-
-/* =========================
-   REUSABLE COMPONENTS
-========================= */
-
-
-
-function TwoCol({ children }: WrapperProps){
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      {children}
-    </div>
-  );
 }
 
 function Input({
@@ -139,3 +111,24 @@ function Input({
 }
 
 
+interface SelectProps {
+  label: string;
+  required?: boolean;
+}
+
+function Select({
+  label,
+  required = false,
+}: SelectProps){
+  return (
+    <div>
+      <label className="mb-1 block text-sm text-gray-600">
+        {label}
+        {required && <span className="ml-1 text-red-500">*</span>}
+      </label>
+      <select className="w-full rounded-md bg-gray-100 px-3 py-2 text-sm outline-none">
+        <option value="" />
+      </select>
+    </div>
+  );
+}

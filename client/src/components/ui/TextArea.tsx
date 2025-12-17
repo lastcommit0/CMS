@@ -8,7 +8,7 @@ interface TextareaProps {
 
 
 
-function Textarea({
+export default function Textarea({
   label,
   required = false,
 }: TextareaProps){
