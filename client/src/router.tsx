@@ -1,8 +1,30 @@
 import { createBrowserRouter, Navigate } from "react-router-dom"
 import App from "./App"
 import Dashboard from "./pages/Dashboard"
+import AddStory from "./pages/StoryManagement/AddStory"
+import PdfList from "./pages/StoryManagement/PdfList"
+import { StoriesLayout } from "./pages/StoryManagement/StoriesLayout"
+import PriorityManagement from "./pages/PriorityManagement"
+import { ToolsLayout } from "./pages/Tools/ToolsLayout"
+import CategoryManagement from "./pages/Tools/CategoryManagement"
+import DownloadReport from "./pages/Tools/DownloadReport"
+import CreatePoll  from "./pages/StoryManagement/CreatePoll"
+import ViewStory from "./pages/StoryManagement/ViewStory"
+import ScheduledStory from "./pages/StoryManagement/ScheduledStory"
+import LoginPage from "./auth/pages/LoginPage"
+import LoginPage2 from "./auth/pages/LoginPage2"
+
 
 export const router = createBrowserRouter([
+  {
+    path: "/login",
+    element: <LoginPage />,
+    children: [
+      {
+        
+      }
+    ]
+  },
   {
     path: '/',
     element: <App />,
@@ -17,28 +39,28 @@ export const router = createBrowserRouter([
       },
       {
         path: 'stories',
-        element: <div>Stories</div>,
+        element: <StoriesLayout />,
         children: [
           { index: true, element: <Navigate to="add" replace /> },
           {
             path: 'add',
-            element: <div>Add Story</div>
+            element: <AddStory />
           },
           {
             path: 'view',
-            element: <div>View Story</div>
+            element: <ViewStory />
           },
           {
             path: 'view-schedule',
-            element: <div>View Schedule Story</div>
+            element: <ScheduledStory />
           },
           {
             path: 'pdf-list',
-            element: <div>PDF List</div>
+            element: <PdfList />
           },
           { 
             path: 'create-poll', 
-            element: <div>Create Poll</div> 
+            element: <CreatePoll onClose={() => {}} /> 
           },
           { 
             path: 'video-list',
@@ -52,16 +74,16 @@ export const router = createBrowserRouter([
       },
       {
         path: 'priority',
-        element: <div>Priority</div>
+        element: <PriorityManagement />
       },
       {
         path: 'tools',
-        element: <div>Tools</div>,
+        element: <ToolsLayout />,
         children: [
           { index: true, element: <Navigate to="category-management" replace /> },
           {
             path: 'category-management',
-            element: <div>Category Management</div>
+            element: <CategoryManagement />
           },
           {
             path: 'meta-management',
@@ -69,7 +91,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'download-report',
-            element: <div>Download Report</div>
+            element: <DownloadReport/>
           }
         ]
       },

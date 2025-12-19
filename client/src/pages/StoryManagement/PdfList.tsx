@@ -4,7 +4,7 @@
 export default function PdfList() {
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 ml-96 p-6 bg-white min-h-screen max-w-7xl shadow">
   {/* HEADER */}
   <div className="flex items-center justify-between border-b pb-3">
     <h2 className="text-lg font-semibold text-blue-700">

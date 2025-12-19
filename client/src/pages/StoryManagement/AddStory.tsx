@@ -1,12 +1,9 @@
 import { Clipboard } from "lucide-react";
 import image from "../../assets/icons/image.svg";
-import Sidebar from "@/components/Sidebar";
 
 export default function AddStory() {
     return (
-        <div className="flex ">
-            <Sidebar></Sidebar>
-        <div className="mx-auto min-h-screen max-w-7xl bg-white p-6 shadow">
+        <div className="mx-auto ml-96 min-h-screen max-w-7xl bg-white p-6 shadow">
             {/* Header */}
             <div className="mb-6 flex items-center justify-between">
                 <h1 className="text-xl font-semibold text-[#243874]">New Article</h1>
@@ -262,7 +259,6 @@ export default function AddStory() {
                     </div>
                 </div>
             </div>
-        </div>
         </div>
     );
 }

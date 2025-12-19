@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&family=Sansation:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Sansation:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Sansation:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -7,6 +8,10 @@
 
 
 @theme inline {
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  --font-logo: 'Montserrat', system-ui, sans-serif;
 
   --radius-sm: calc(var(--radius) - 4px);
 
@@ -222,6 +227,14 @@
     @apply border-border outline-ring/50;
   }
   body {
+    font-family: var(--font-sans);
+    @apply antialiased;
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .font-logo {
+    font-family: var(--font-logo);
   }
 }

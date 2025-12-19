@@ -74,7 +74,7 @@ export default function Sidebar() {
           {/* LOGO */}
           <div className="flex items-center gap-2">
             <img src={logo} className="w-11" />
-            <h3 className="text-xs uppercase font-semibold leading-none">
+            <h3 className="font-logo text-xs uppercase font-semibold leading-none">
               <span>Uttar</span>
               <span className="block">Pradesh</span>
               <span>Times</span>

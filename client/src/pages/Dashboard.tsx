@@ -1,291 +1,301 @@
-"use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { LayoutDashboard, FileText, Flag, Users, Search, Calendar } from "lucide-react"
+import { LayoutDashboard, FileText, Calendar, Search, Loader2 } from "lucide-react"
 
+interface NewsItem {
+  id: string
+  title: string
+  timestamp: string
+  providedBy: string
+  editedBy: string
+  desk: string
+}
 
-const newsData = [
-  {
-    id: "1998498",
-    title: "Noida Bank Employee Booked For Illicitly Transferring Rs...",
-    timestamp: "12-Jan-2024 | 08:53 am",
-    providedBy: "Shagun Bhardwaj",
-    editedBy: "Shagun Bhardwaj",
-    desk: "-",
-  },
-  {
-    id: "1998499",
-    title: "Dunkl Release LIVE Updates: SRK Fans Call Film...",
-    timestamp: "13-Jan-2024 | 09:33 am",
-    providedBy: "Shagun Bhardwaj",
-    editedBy: "Shagun Bhardwaj",
-    desk: "-",
-  },
-  {
-    id: "1998100",
-    title: "There's A Message in The Suspension Spree...",
-    timestamp: "14-Jan-2024 | 08:30 am",
-    providedBy: "Shagun Bhardwaj",
-    editedBy: "Shagun Bhardwaj",
-    desk: "-",
-  },
-  {
-    id: "1998101",
-    title: "How 150 Meetings by Amit Shah and 3,200 Suggestions...",
-    timestamp: "14-Jan-2024 | 08:53 am",
-    providedBy: "Shagun Bhardwaj",
-    editedBy: "Shagun Bhardwaj",
-    desk: "-",
-  },
-  {
-    id: "1998102",
-    title: "US Deepened Partnership with India': Blinken at Year...",
-    timestamp: "14-Jan-2024 | 09:53 am",
-    providedBy: "Shagun Bhardwaj",
-    editedBy: "Shagun Bhardwaj",
-    desk: "-",
-  },
-  {
-    id: "1998103",
-    title: "Covid-19 Live: 2,669 Active Cases in India, 21 People...",
-    timestamp: "14-Jan-2024 | 12:55 am",
-    providedBy: "Shagun Bhardwaj",
-    editedBy: "Shagun Bhardwaj",
-    desk: "-",
-  },
-  {
-    id: "1998104",
-    title: "No Paneer at Indian Wedding? Angry Guests Throw Chairs...",
-    timestamp: "15-Jan-2024 | 09:53 am",
-    providedBy: "Shagun Bhardwaj",
-    editedBy: "Shagun Bhardwaj",
-    desk: "-",
-  },
-  {
-    id: "1998105",
-    title: "Delhi CM Arvind Kejriwal Responds to ED, Calls Summon...",
-    timestamp: "16-Jan-2024 | 11:55 am",
-    providedBy: "Shagun Bhardwaj",
-    editedBy: "Shagun Bhardwaj",
-    desk: "-",
-  },
-  {
-    id: "1998106",
-    title: "Disproportionate Assets Case: TN Minister Ponmudi, Wife...",
-    timestamp: "16-Jan-2024 | 03:30 pm",
-    providedBy: "Shagun Bhardwaj",
-    editedBy: "Shagun Bhardwaj",
-    desk: "-",
-  },
-  {
-    id: "1998107",
-    title: "Why Is Kerala at the Forefront Whenever There's A Surge...",
-    timestamp: "16-Jan-2024 | 03:45 pm",
-    providedBy: "Shagun Bhardwaj",
-    editedBy: "Shagun Bhardwaj",
-    desk: "-",
-  },
-  {
-    id: "1998108",
-    title: "Tata Harrier and Safari Secure 5-Star Safety Rating...",
-    timestamp: "17-Jan-2024 | 09:45 am",
-    providedBy: "Shagun Bhardwaj",
-    editedBy: "Shagun Bhardwaj",
-    desk: "-",
-  },
-  {
-    id: "1998109",
-    title: "Open Leaders March from Parl to Vijay Chowk Over...",
-    timestamp: "17-Jan-2024 | 09:50 am",
-    providedBy: "Shagun Bhardwaj",
-    editedBy: "Shagun Bhardwaj",
-    desk: "-",
-  },
-  {
-    id: "1998110",
-    title: "Why Meteorites Are More Expensive Than Gold...",
-    timestamp: "18-Jan-2024 | 12:46 pm",
-    providedBy: "Shagun Bhardwaj",
-    editedBy: "Shagun Bhardwaj",
-    desk: "-",
-  },
-]
+interface DashboardStats {
+  published: number
+  pending: number
+  planned: number
+  holdReject: number
+}
 
 export default function Dashboard() {
+  const [newsData, setNewsData] = useState<NewsItem[]>([])
+  const [stats, setStats] = useState<DashboardStats>({
+    published: 0,
+    pending: 0,
+    planned: 0,
+    holdReject: 0
+  })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState("")
+  const [startDate, setStartDate] = useState("2024-01-01")
+  const [endDate, setEndDate] = useState("2024-01-30")
+  const [productType, setProductType] = useState("story")
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const response = await fetch('http://localhost:3000/api/dashboard', {
+        credentials: 'include', 
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard data')
+      }
+
+      const data = await response.json()
+      setNewsData(data.news || [])
+      setStats(data.stats || { published: 0, pending: 0, planned: 0, holdReject: 0 })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+      console.error('Dashboard fetch error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGetData = async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams({
+        search: searchQuery,
+        startDate,
+        endDate,
+        productType
+      })
+
+      const response = await fetch(`http://localhost:3000/api/dashboard?${params}`, {
+        credentials: 'include'
+      })
+
+      if (!response.ok) throw new Error('Failed to fetch filtered data')
+
+      const data = await response.json()
+      setNewsData(data.news || [])
+      setStats(data.stats || stats)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading && newsData.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
 
   return (
-    <div className=" min-h-screen bg-gray-50">
-
-      {/* Main Content */}
-      <main className="flex h-full w-full flex-1 flex-col gap-2 rounded-tl-2xl border border-neutral-200 bg-white p-2 md:p-10 dark:border-neutral-700 dark:bg-neutral-900">
+    <div className="ml-36 min-h-screen bg-gray-50">
+      <main className="p-6">
         {/* Header */}
-        <header className="flex flex-row justify-between bg-white border-b border-gray-200 px-8 pt-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-          <div className="">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                {/* Search */}
-                <div className="lg:col-span-2 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input type="text" placeholder="Search by Text or ID" className="pl-10 bg-gray-50 border-gray-200" />
-                </div>
-
-                {/* Mandal Dropdown */}
-                <Select defaultValue="mandal">
-                  <SelectTrigger className="bg-gray-50 border-gray-200">
-                    <SelectValue placeholder="Mandal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mandal">Mandal</SelectItem>
-                    <SelectItem value="mandal1">Mandal 1</SelectItem>
-                    <SelectItem value="mandal2">Mandal 2</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {/* District Dropdown */}
-                <Select defaultValue="district">
-                  <SelectTrigger className="bg-gray-50 border-gray-200">
-                    <SelectValue placeholder="District" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="district">District</SelectItem>
-                    <SelectItem value="district1">District 1</SelectItem>
-                    <SelectItem value="district2">District 2</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          
+          <div className="w-full md:w-auto grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input 
+                type="text" 
+                placeholder="Search by Text or ID" 
+                className="pl-10 bg-gray-50 border-gray-200"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
-        </header>
-          <div className="bg-white rounded-lg p-6 mb-6 shadow-sm">
 
-        <div className="">
-          {/* Filters Section */}
+            <Select value="mandal" onValueChange={() => {}}>
+              <SelectTrigger className="bg-gray-50 border-gray-200">
+                <SelectValue placeholder="Mandal" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mandal">Mandal</SelectItem>
+                <SelectItem value="mandal1">Mandal 1</SelectItem>
+                <SelectItem value="mandal2">Mandal 2</SelectItem>
+              </SelectContent>
+            </Select>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Start Date */}
-              <div>
-                <label className="block text-sm text-gray-700 mb-2">Start Date</label>
-                <div className="relative">
-                  <Input type="date" defaultValue="2024-01-01" className="bg-gray-50 border-gray-200" />
-                </div>
+            <Select value="district" onValueChange={() => {}}>
+              <SelectTrigger className="bg-gray-50 border-gray-200">
+                <SelectValue placeholder="District" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="district">District</SelectItem>
+                <SelectItem value="district1">District 1</SelectItem>
+                <SelectItem value="district2">District 2</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+            {error}
+          </div>
+        )}
+
+        {/* Filters Section */}
+        <div className="bg-white rounded-lg p-6 mb-6 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm text-gray-700 mb-2">Start Date</label>
+              <Input 
+                type="date" 
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="bg-gray-50 border-gray-200" 
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-700 mb-2">End Date</label>
+              <Input 
+                type="date" 
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="bg-gray-50 border-gray-200" 
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-700 mb-2">Product Type</label>
+              <Select value={productType} onValueChange={setProductType}>
+                <SelectTrigger className="bg-gray-50 border-gray-200">
+                  <SelectValue placeholder="Story" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="story">Story</SelectItem>
+                  <SelectItem value="article">Article</SelectItem>
+                  <SelectItem value="news">News</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-end">
+              <Button 
+                onClick={handleGetData}
+                disabled={loading}
+                className="w-full bg-[#1e3a8a] hover:bg-[#1e3a8a]/90 text-white"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Get Data'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <FileText className="w-6 h-6 text-green-600" />
               </div>
-
-              {/* End Date */}
               <div>
-                <label className="block text-sm text-gray-700 mb-2">End Date</label>
-                <div className="relative">
-                  <Input type="date" defaultValue="2024-01-30" className="bg-gray-50 border-gray-200" />
-                </div>
-              </div>
-
-              {/* Product Type */}
-              <div>
-                <label className="block text-sm text-gray-700 mb-2">Product Type</label>
-                <Select defaultValue="story">
-                  <SelectTrigger className="bg-gray-50 border-gray-200">
-                    <SelectValue placeholder="Story" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="story">Story</SelectItem>
-                    <SelectItem value="article">Article</SelectItem>
-                    <SelectItem value="news">News</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Get Data Button */}
-              <div className="flex items-end">
-                <Button className="w-full bg-[#1e3a8a] hover:bg-[#1e3a8a]/90 text-white">Get Data</Button>
+                <div className="text-3xl font-bold text-gray-900">{stats.published}</div>
+                <div className="text-sm text-gray-500">Published</div>
               </div>
             </div>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            {/* Published */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-gray-900">240</div>
-                  <div className="text-sm text-gray-500">Published</div>
-                </div>
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-orange-600" />
               </div>
-            </div>
-
-            {/* Pending */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-orange-600" />
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-gray-900">16</div>
-                  <div className="text-sm text-gray-500">Pending</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Planned */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <LayoutDashboard className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-gray-900">12</div>
-                  <div className="text-sm text-gray-500">Planned</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Hold/Reject */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-gray-900">0</div>
-                  <div className="text-sm text-gray-500">Hold/Reject</div>
-                </div>
+              <div>
+                <div className="text-3xl font-bold text-gray-900">{stats.pending}</div>
+                <div className="text-sm text-gray-500">Pending</div>
               </div>
             </div>
           </div>
 
-          {/* Data Table */}
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <LayoutDashboard className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-gray-900">{stats.planned}</div>
+                <div className="text-sm text-gray-500">Planned</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-3xl font-bold text-gray-900">{stats.holdReject}</div>
+                <div className="text-sm text-gray-500">Hold/Reject</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Data Table */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    Title
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    Time Stamp
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    Provided By
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    Edited By
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    Desk
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {newsData.length === 0 ? (
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Title
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Time Stamp
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Provided By
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Edited By
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Desk
-                    </th>
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                      No data available
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {newsData.map((item) => (
+                ) : (
+                  newsData.map((item) => (
                     <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.id}</td>
                       <td className="px-6 py-4 text-sm text-gray-900">{item.title}</td>
@@ -294,10 +304,10 @@ export default function Dashboard() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.editedBy}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.desk}</td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </main>
