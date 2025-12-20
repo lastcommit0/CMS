@@ -48,7 +48,7 @@ export default function PriorityManagement() {
                                 <Search size={16} />
                             </button>
                         </div>
-                        <div className="relative w-[180px]">
+                        <div className="relative w-45">
                             <select
                                 className="w-full appearance-none border-b border-gray-300 bg-[#EAEAEA] rounded-sm px-2 py-2 pr-8 text-sm text-gray-600 outline-none"
                             >

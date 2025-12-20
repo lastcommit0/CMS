@@ -13,73 +13,285 @@ datasource db {
   provider = "postgresql"
 }
 
-
 model User {
-  id             String     @id @default(cuid())
+  id String @id @default(cuid())
 
-  firstName      String
-  lastName       String?
+  name String
 
-  email          String     @unique
-  phone          String     @unique
+  email String @unique
+  phone String @unique
 
-  passwordHash   String
-  role           Role
-  status         UserStatus @default(ACTIVE)
+  passwordHash String
+  role         Role
+  status       UserStatus @default(ACTIVE)
+
+  roles UserRole[]
+  oauthAccounts OAuthAccount[]
+
+  stories Story[]       @relation("AuthorStories")
+  polls  Poll[] 
+  reports Report[]
+  activityLogs AuditLog[]
+  pollVotes PollVote[]
 
   // 🔹 Reporting hierarchy
-  managerId      String?
-  manager        User?      @relation("UserManager", fields: [managerId], references: [id])
-  subordinates   User[]     @relation("UserManager")
+  managerId    String?
+  manager      User?   @relation("UserManager", fields: [managerId], references: [id])
+  subordinates User[]  @relation("UserManager")
 
   // 🔹 Profile & sessions
-  profile        UserProfile?
-  sessions       Session[]
+  profile  UserProfile?
+  sessions Session[]
 
   // 🔹 Audit / creation
-  createdById    String?
-  createdBy      User?      @relation("UserCreator", fields: [createdById], references: [id])
-  createdUsers   User[]     @relation("UserCreator")
+  createdById  String?
+  createdBy    User?     @relation("UserCreator", fields: [createdById], references: [id])
+  createdUsers User[]    @relation("UserCreator")
 
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
+model RoleModel {
+  id          Int        @id @default(autoincrement())
+  name        Role       @unique
+  description String?
+  userRoles   UserRole[]
+}
+
+model UserRole {
+  id     Int       @id @default(autoincrement())
+  userId String
+  roleId Int
+  user   User      @relation(fields: [userId], references: [id])
+  role   RoleModel @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId])
+}
+
+model OAuthAccount {
+  id                String @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+
+  accessToken  String?
+  refreshToken String?
+  expiresAt    Int?
+  tokenType    String?
+  scope        String?
+  idToken      String?
+  sessionState String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
 
 model UserProfile {
-  id           String      @id @default(cuid())
-  userId       String      @unique
+  id     String @id @default(cuid())
+  userId String @unique
 
-  designation  Designation
-  jobType      JobType
+  designation Designation
+  jobType     JobType
 
-  location     String?
-  bio          String?
-  avatar       String?
+  location String?
+  bio      String?
+  avatar   String?
 
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-
 model Session {
-  id               String   @id @default(uuid())
-  userId           String
+  id     String @id @default(uuid())
+  userId String
 
   refreshTokenHash String
   device           String?
   ipAddress        String?
 
-  expiresAt        DateTime
-  revoked          Boolean  @default(false)
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
 
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt        DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
+model Story {
+  id       String  @id @default(cuid())
+  title    String
+  slug     String  @unique
+  excerpt  String
+  authorId String
+  content  Json
+
+  sotryType StoryType
+  status    StoryStatus
+
+  assets     StoryAsset[]
+  sections   StorySection[]
+  user       User           @relation("AuthorStories", fields: [authorId], references: [id])
+  priority   Int
+  published  Boolean        @default(false)
+  scheduleAt DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+model StoryAsset {
+  id       String    @id @default(cuid())
+  storyId  String
+  type     AssetType
+  fileUrl  String
+  metadata Json?
+  story    Story     @relation(fields: [storyId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Section {
+  id       Int     @id @default(autoincrement())
+  name     String
+  slug     String  @unique
+  isActive Boolean @default(true)
+
+  stories StorySection[]
+}
+
+model StorySection {
+  id         Int     @id @default(autoincrement())
+  storyId    String
+  sectionId  Int
+  priority   Int
+  isFeatured Boolean @default(false)
+
+  story   Story   @relation(fields: [storyId], references: [id])
+  section Section @relation(fields: [sectionId], references: [id])
+
+  @@unique([storyId, sectionId])
+}
+
+model PriorityLog {
+  id          Int    @id @default(autoincrement())
+  storyId     String
+  sectionId   Int
+  oldPriority Int
+  newPriority Int
+  changedById String
+
+  changedAt DateTime @default(now())
+}
+
+model Poll {
+  id        String       @id @default(cuid())
+  storyId   String?
+  question  String
+  status    PollStatus
+  createdBy String
+  creator   User         @relation(fields: [createdBy], references: [id])
+  options   PollOption[]
+  votes     PollVote[]
+
+  createdAt DateTime @default(now())
+}
+
+model PollOption {
+  id     String @id @default(cuid())
+  pollId String
+  text   String
+
+  votes PollVote[]
+  poll Poll @relation(fields: [pollId], references: [id])
+}
+
+model PollVote {
+  id        String  @id @default(cuid())
+  pollId    String
+  optionId  String
+  userId    String?
+  ipAddress String?
+
+  poll   Poll       @relation(fields: [pollId], references: [id])
+  option PollOption @relation(fields: [optionId], references: [id])
+  user   User       @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([pollId, userId])
+}
+
+model Category {
+  id       Int     @id @default(autoincrement())
+  name     String
+  slug     String  @unique
+  parentId Int?
+  isActive Boolean @default(true)
+
+  parent        Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  subcategories Category[] @relation("CategoryToCategory")
+}
+
+model MetaTag {
+  id      Int    @id @default(autoincrement())
+  storyId String
+
+  metaKeyowords   String?
+  metadescription String
+  story           Story   @relation(fields: [storyId], references: [id])
+}
+
+model Report {
+  id        Int     @id @default(autoincrement())
+  type      String
+  filters   Json
+  filterUrl String?
+
+  generatedBy String
+  user        User     @relation(fields: [generatedBy], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+
+model AuditLog {
+  id          Int     @id @default(autoincrement())
+  userId      String
+  action      String    
+  ipAddress   String
+
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+enum StoryType {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  SCHEDULED
+}
+
+enum StoryStatus {
+  NEWS
+  MAGAZINE
+  BLOG
+  VIDEO
+  PDF
+}
+
+enum AssetType {
+  IMAGE
+  VIDEO
+  PDF
+}
+
+enum PollStatus {
+  ACTIVE
+  INACTIVE
+}
 
 enum Role {
   ADMIN

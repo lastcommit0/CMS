@@ -4,7 +4,6 @@ import image from "../../assets/icons/image.svg";
 export default function AddStory() {
     return (
         <div className="mx-auto ml-96 min-h-screen max-w-7xl bg-white p-6 shadow">
-            {/* Header */}
             <div className="mb-6 flex items-center justify-between">
                 <h1 className="text-xl font-semibold text-[#243874]">New Article</h1>
                 <div className="flex gap-3">
@@ -17,7 +16,6 @@ export default function AddStory() {
                 </div>
             </div>
 
-            {/* Story Type */}
             <div className="mb-6 flex items-center gap-6">
                 <label className="flex items-center gap-2 text-sm">
                     <input type="radio" name="type" defaultChecked /> Story
@@ -30,9 +28,7 @@ export default function AddStory() {
                 </label>
             </div>
 
-            {/* Grid */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                {/* Left Column */}
                 <div className="lg:col-span-2 space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-neutral-600 opacity-85">Story URL (English)
