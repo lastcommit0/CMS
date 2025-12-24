@@ -2,7 +2,10 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
-
+import errorHandler from './middleware/errorHandler';
+import morgan from 'morgan';
+import { notFoundHandler } from './middleware/notFoundHandler';
+import routes from './routes';
 
 
 const app = express();
@@ -21,6 +24,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(cors());
 
+
+app.use('/api', routes);
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 
 

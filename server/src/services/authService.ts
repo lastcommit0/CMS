@@ -1,60 +1,233 @@
-import jwt from 'jsonwebtoken';
-import argon from 'argon2';
-import prisma from '../db';
-import { loginSchema } from '../validators/authSchema';
-import { ar } from 'zod/v4/locales';
-import { sign } from 'node:crypto';
+import prisma from "../db";
+import argon2 from "argon2";
+import jwt from "jsonwebtoken";
+import { ErrorCode } from "../errors/errorCode";
+import CustomError from "../errors/customError";
+import { logAudit } from "./auditService";
 
 
-
-const signAccessToken = (payload: any) => {
-    jwt.sign(payload, process.env.Secret!, {expiresIn: "15m"});
-}
-
-const signRefreshToken = (payload: any) => {
-    jwt.sign(payload, process.env.Secret!, {expiresIn: "7d"});
-}
-
-export async function login(email: string, password: string){
-    const {success, error} = loginSchema.safeParse({email, password});
-    if(!success){
-        throw new Error('Invalid input');
-    }
-    const user = await prisma.user.findUnique({
-        where: {email}
+export async function registerUser(data: any, createdById?: string, ipAddress?: string){
+    const exist = await prisma.user.findFirst({
+        where: {
+            OR: [
+                {email: data.email},
+                {phone: data.phone}
+            ]
+        }
     });
 
-    const valid = await argon.verify(user?.passwordHash!, password);
-    if(!valid){
-        throw new Error('Invalid credentials');
+    if(exist){
+        throw new CustomError(ErrorCode.USER_ALREADY_EXISTS);
     }
 
-    const accessToken = signAccessToken({userId: user?.id, role: user?.role});
-    const refreshToken = signRefreshToken({userId: user?.id});
-    if(!accessToken || !refreshToken){
-        throw new Error('Failed to generate tokens');
-    }
-    await prisma.session.create({
+    const passwordHash = await argon2.hash(data.password);
+
+    const user = await prisma.user.create({
         data: {
-            userId: user?.id,
-            refreshTokenHash: refreshToken,
-            expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            passwordHash,
+            role: data.role,
+            createdById,
+            profile: {
+                create: {
+                    designation: data.designation,
+                    jobType: data.jobType,
+                    location: data.location,
+                    bio: data.bio
+                }
+            }
+        },
+        include: {
+            profile: true
         },
     });
-    return {accessToken, refreshToken};
+
+    await prisma.auditLog.create({
+        data: {
+            userId: user.id, 
+            action: 'USER_CREATED',
+            resource: 'USER',
+            metadata: {
+                userId: user.id,
+                email: user.email
+            },
+            ipAddress: ipAddress || 'unknown',
+        }
+    })
+
+    return user;
 }
 
-export async function refreshToken(refreshToken: string){
-    const refreshToken = req.cookies.refreshToken;
-  if (!refreshToken) {
-    return res.status(401).json({ error: "No refresh token provided" });
-  }
-  try {
-    const decoded = jwt.verify(refreshToken, JWT_SECRET) as { user: string };
 
-    const newAccessToken = jwt.sign({ user: decoded.user }, JWT_SECRET, { expiresIn: '1h' });
-    res.header('Authorization', newAccessToken).json({ user: decoded.user });
-  } catch (err) {
-    return res.status(403).json({ error: "Invalid refresh token" });
+export async function loginUser(identifier: string, password: string, req: any){
+    const user = await prisma.user.findFirst({
+        where: {
+            OR: [
+                {email: identifier},
+                {phone: identifier}
+            ],
+            status: 'ACTIVE'
+        },
+        include: {
+            profile: true
+        }
+    });
+    if(!user){
+        throw new CustomError(ErrorCode.USER_NOT_FOUND);
+    }
+    const valid = await argon2.verify(user.passwordHash, password);
+    if(!valid){
+        throw new CustomError(ErrorCode.AUTH_INVALID_CREDENTIALS);
+    }
+
+    const accessToken = jwt.sign({userId: user.id, role:user.role}, process.env.JWT_SECRET!, {expiresIn: '24h'});
+    const refreshToken = jwt.sign({userId: user.id}, process.env.JWT_SECRET!, {expiresIn: '7d'});
+
+    const refreshTokenHash = await argon2.hash(refreshToken);
+
+    await prisma.session.create({
+        data: {
+            userId: user.id,
+            refreshTokenHash,
+            device: req.headers["user-agent"],
+            ipAddress: req.ip,
+            expiresAt: new Date(Date.now() + 7*24*60*60*1000) 
+        }
+    });
+    return {user, accessToken, refreshToken};
+}
+
+
+export async function refreshUser(refreshToken: string, req: any) {
+  const decoded = jwt.verify(
+    refreshToken,
+    process.env.JWT_SECRET!
+  ) as { userId: string };
+
+  const sessions = await prisma.session.findMany({
+    where: {
+      userId: decoded.userId,
+      revoked: false,
+      expiresAt: { gt: new Date() },
+    },
+  });
+
+  let validSession = null;
+  for (const session of sessions) {
+    const valid = await argon2.verify(session.refreshTokenHash, refreshToken);
+    if (valid) {
+      validSession = session;
+      break;
+    }
   }
+
+  if (!validSession) {
+    await logAudit({
+      userId: decoded.userId,
+      action: "USER_REFRESH_FAILED",
+      resource: "REFRESH",
+      metadata: { reason: "Invalid refresh token" },
+      ipAddress: req.ip,
+    });
+
+    throw new CustomError(ErrorCode.AUTH_TOKEN_INVALID);
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: decoded.userId, status: "ACTIVE" },
+  });
+
+  if (!user) {
+    throw new CustomError(ErrorCode.USER_NOT_FOUND);
+  }
+
+  const newAccessToken = jwt.sign(
+    { userId: user.id, role: user.role },
+    process.env.JWT_SECRET!,
+    { expiresIn: "15m" }
+  );
+
+  const newRefreshToken = jwt.sign(
+    { userId: user.id },
+    process.env.JWT_REFRESH_SECRET!,
+    { expiresIn: "7d" }
+  );
+
+  await prisma.session.update({
+    where: { id: validSession.id },
+    data: {
+      refreshTokenHash: await argon2.hash(newRefreshToken),
+    },
+  });
+
+  await logAudit({
+    userId: user.id,
+    action: "USER_REFRESH",
+    resource: "REFRESH",
+    metadata: { sessionId: validSession.id },
+    ipAddress: req.ip,
+  });
+
+  return {
+    accessToken: newAccessToken,
+    refreshToken: newRefreshToken,
+  };
+}
+
+
+export async function logoutUser(refreshToken: string, req: any) {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET!) as { userId: string };
+
+    const sessions = await prisma.session.findMany({
+        where: {
+            userId: decoded.userId,
+            revoked: false
+        }
+    });
+    for(const session of sessions){
+        const valid = await argon2.verify(session.refreshTokenHash, refreshToken);
+        if(valid){
+            await prisma.session.update({
+                where: { id: session.id },
+                data: {
+                    revoked: true
+                }
+            });
+            break;
+        }
+    }
+    await prisma.auditLog.create({
+        data: {
+            userId: decoded.userId,
+            action: "USER_LOGOUT",
+            resource: "LOGOUT",
+            ipAddress: req.ip,
+        }
+    });
+
+    return;
+}
+
+
+export async function logoutAllSessions(req: any){
+    await prisma.session.updateMany({
+        where: {
+            userId: req.user!.id,
+            revoked: false
+        },
+        data: { revoked: true }
+    });
+
+    await prisma.auditLog.create({
+        data: {
+            userId: req.user!.id,
+            action: "USER_LOGOUT_ALL",
+            resource: "LOGOUT",
+            ipAddress: req.ip || 'unknown',
+        }
+    });
+
+    return;
 }

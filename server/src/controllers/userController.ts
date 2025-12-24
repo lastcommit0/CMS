@@ -1,0 +1,137 @@
+import { Request, Response, NextFunction } from "express";
+import { UserService } from "../services/userService";
+import prisma from "../db";
+import { updateProfileSchema, updateUserSchema, changePasswordSchema } from "../validators/userSchema";
+
+export const getUsers = async (req: Request, res: Response, next: NextFunction) => {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+
+    const result = await UserService.getUsers({
+        page,
+        limit,
+        search: req.query.search as string,
+        role: req.query.role as string,
+        status: req.query.status as string
+    });
+
+    res.status(200).json({
+        successs: true,
+        data: result.users,
+        pagination: result.pagination
+    });
+}
+
+
+export const getUser = async (req: Request, res: Response, next: NextFunction) => {
+    const user = await UserService.getUserById(req.params.id);
+    res.status(200).json({
+        successs: true,
+        data: user
+    })
+}
+
+
+export const updateUser = async (req: Request, res: Response, next: NextFunction) => {
+    const data = updateUserSchema.parse(req.body);
+    const updated = await UserService.updateUser(req.params.id, data);
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.id,
+        action: "USER_UPDATED",
+        resource: "User",
+        metadata: { targetUserId: req.params.id, changes: req.body },
+        ipAddress: req.ip || "unknown"
+      }
+    });
+    res.status(200).json({
+        successs: true,
+        data: updated
+    })
+}
+
+
+export const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
+    await UserService.deleteUser(req.params.id, req.user!.id);
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.id,
+        action: "USER_DELETED",
+        resource: "User",
+        metadata: { deletedUserId: req.params.id },
+        ipAddress: req.ip || "unknown"
+      }
+    });
+    res.status(200).json({
+        successs: true,
+        data: {}
+    })
+}
+
+
+export const updateUserProfile = async (req: Request, res: Response, next: NextFunction) => {
+    const data = updateProfileSchema.parse(req.body);
+    const profile = await UserService.updateUserProfile(req.user!.id, data  );
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.id,
+        action: "USER_PROFILE_UPDATED",
+        resource: "User",
+        metadata: { changes: req.body },
+        ipAddress: req.ip || "unknown"
+      }
+    });
+    res.status(200).json({
+        successs: true,
+        data: profile
+    })
+}
+
+
+export const changePassword = async (req: Request, res: Response, next: NextFunction) => {
+    const data = changePasswordSchema.parse(req.body);
+    await UserService.changePassword(
+      req.user!.id,
+      req.body.curPassword,
+      req.body.newPassword
+    );
+
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user!.id,
+        action: "USER_PASSWORD_CHANGED",
+        resource: "User",
+        ipAddress: req.ip || "unknown"
+      }
+    });
+
+    res.status(200).json({
+        successs: true,
+        data: {}
+    })
+}
+
+
+export const getUserStats = async (req: Request, res: Response, next: NextFunction) => {
+    const stats = await UserService.getUserStats(req.params.id);
+
+    res.status(200).json({
+        successs: true,
+        data: stats
+    })
+}
+
+
+export const getUserActivity = async (req: Request, res: Response, next: NextFunction) => {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+
+    const activity = await UserService.getUserActivity(req.params.id, page, limit);
+    res.status(200).json({
+        successs: true,
+        data: activity
+    })
+}
