@@ -175,6 +175,50 @@ export const SectionService = {
     return record;
   },
 
+  async removeStory(userId: string, ip: string, sectionId: string, storyId: string) {
+    const exist = await prisma.storySection.findFirst({
+      where: {
+        sectionId,
+        storyId
+      }
+    });
+    if (!exist) {
+      throw new CustomError(ErrorCode.STORY_NOT_FOUND);
+    }
+
+    await prisma.storySection.deleteMany({
+      where: {
+        storyId,
+        sectionId
+      }
+    });
+    await prisma.auditLog.create({
+      data: {
+        userId,
+        action: 'STORY_REMOVED_FROM_SECTION',
+        resource: 'StorySection',
+        metadata: { sectionId, storyId },
+        ipAddress: ip
+      }
+    });
+  },
+
+  async getFeatured(sectionId: string,) {
+    const stories = await prisma.storySection.findMany({
+      where: {
+        sectionId,
+        isFeatured: true
+      },
+      include: {
+        story: true
+      },
+      orderBy: {
+        priority: 'desc'
+      }
+    });
+    return stories;
+  },
+
   async setFeatured(userId: string, ip: string, sectionId: string, storyId: string, isFeatured: boolean) {
     const record = await prisma.storySection.findFirst({
       where: { sectionId, storyId }
@@ -200,5 +244,28 @@ export const SectionService = {
     });
 
     return updated;
+  },
+
+
+  async getSectionStats(sectionId: string) {
+    const stories = await prisma.storySection.findMany({
+      where: { sectionId },
+      select: {
+        isFeatured: true,
+        story: {
+          select: {
+            published: true,
+            storyType: true
+          }
+        }
+      }
+    });
+    const totalStories = stories.length;
+    const featuredStories = stories.filter(s => s.isFeatured).length;
+    const publishedStories = stories.filter(s => s.story?.published).length;
+    const draftStories = stories.filter(s => s.story?.storyType === 'DRAFT').length;
+
+
+    return { totalStories, featuredStories, publishedStories, draftStories };
   }
 };

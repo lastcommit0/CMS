@@ -3,7 +3,7 @@ import argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import { ErrorCode } from "../errors/errorCode";
 import CustomError from "../errors/customError";
-import { logAudit } from "./auditService";
+import { AuditService } from "./auditService";
 
 
 export async function registerUser(data: any, createdById?: string, ipAddress?: string){
@@ -124,7 +124,7 @@ export async function refreshUser(refreshToken: string, req: any) {
   }
 
   if (!validSession) {
-    await logAudit({
+    await AuditService.logAudit({
       userId: decoded.userId,
       action: "USER_REFRESH_FAILED",
       resource: "REFRESH",
@@ -162,7 +162,7 @@ export async function refreshUser(refreshToken: string, req: any) {
     },
   });
 
-  await logAudit({
+  await AuditService.logAudit({
     userId: user.id,
     action: "USER_REFRESH",
     resource: "REFRESH",

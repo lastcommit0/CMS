@@ -1,4 +1,3 @@
-// src/modules/section/section.controller.ts
 import { Request, Response } from 'express';
 import { SectionService } from '../services/sectionService';
 import {

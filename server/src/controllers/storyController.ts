@@ -72,6 +72,22 @@ export const updateStory = async (req: Request, res: Response, next: NextFunctio
     res.json({ success: true, data: story });
 };
 
+export const deleteStory = async (req: Request, res: Response, next: NextFunction) => {
+    await StoryService.delete(req.params.id);
+
+    await prisma.auditLog.create({
+        data: {
+            userId: req.user!.id,
+            action: 'STORY_DELETED',
+            resource: 'Story',
+            metadata: { storyId: req.params.id },
+            ipAddress: req.ip || 'unknown'
+        }
+    });
+
+    res.json({ success: true, data: {} });
+};
+
 export const publishStory = async (req: Request, res: Response, next: NextFunction) => {
     const story = await StoryService.publish(req.params.id);
 
