@@ -15,7 +15,7 @@ export const getAuditLogs = async (req: Request, res: Response) => {
   res.status(200).json({ success: true, ...result });
 };
 
-export const getAuditLogById = async (req: Request, res: Request) => {
+export const getAuditLogById = async (req: Request, res: Response) => {
   const log = await AuditService.fetchAuditLogById(req.params.id);
 
   if (!log) {
@@ -85,4 +85,25 @@ export const exportAuditLogs = async (req: Request, res: Response) => {
   }
 
   res.status(200).json({ success: true, data: logs.logs });
+};
+
+export const createAuditLog = async (req: Request, res: Response) => {
+  const {
+    action,
+    resource = "Auth",
+    metadata,
+  } = req.body;
+
+  await AuditService.logAudit({
+    userId: req.user?.id,
+    action,
+    resource,
+    metadata,
+    ipAddress: req.ip,
+  });
+
+  res.status(201).json({
+    success: true,
+    message: "Audit log created",
+  });
 };

@@ -1,16 +1,27 @@
-"use client"
-
+import type React from "react"
 import logo from "@/assets/icons/logo.svg"
+
 import bgimg from "@/assets/icons/bgimg.svg";
 import bgimg2 from "@/assets/icons/bgimg2.svg";
-import type React from "react"
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
+import { RefreshCw } from "lucide-react"
 
 export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
+  const [captcha, setCaptcha] = useState("mkfxc")
+
+  const refreshCaptcha = () => {
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+    let newCaptcha = ""
+    for (let i = 0; i < 5; i++) {
+      newCaptcha += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    setCaptcha(newCaptcha)
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -18,10 +29,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f0] flex flex-col">
-    <div className="min-h-screen bg-[#f5f5f0] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
-        <div className="flex items-center gap-2 mb-6">
+    <div className="relative min-h-screen w-full bg-[#f5f5f0] flex flex-col">
+      <div className="absolute inset-x-0 top-1/2 z-20 flex justify-center 
+                -translate-y-[65%]">
+        <div className="w-full max-w-[420px] bg-white rounded-lg shadow-lg px-8 py-7">
+
+          {/* Logo and Title */}
+          <div className="flex items-center gap-2 mb-2">
           <div className="w-10 h-10 flex items-center justify-center">
             <div className="w-8 h-8 bg-[#f6f7f8] rounded flex items-center justify-center">
               <img
@@ -36,7 +50,7 @@ export default function LoginPage() {
 
         <h2 className="text-3xl font-semibold text-gray-900 mb-8">Welcome Back</h2>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="contact" className="block text-sm text-gray-700 mb-2">
               Phone or Email
@@ -71,7 +85,7 @@ export default function LoginPage() {
           <div className="flex justify-center gap-4">
             <button
               type="button"
-              className="w-14 h-14 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="w-14 h-10 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               aria-label="Sign in with Google"
             >
               <svg className="w-6 h-6" viewBox="0 0 24 24">
@@ -96,7 +110,7 @@ export default function LoginPage() {
 
             <button
               type="button"
-              className="w-14 h-14 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="w-14 h-10 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               aria-label="Sign in with WhatsApp"
             >
               <svg className="w-6 h-6" viewBox="0 0 24 24" fill="#25D366">
@@ -106,7 +120,7 @@ export default function LoginPage() {
 
             <button
               type="button"
-              className="w-14 h-14 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="w-14 h-10 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               aria-label="Sign in with Apple"
             >
               <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
@@ -117,18 +131,20 @@ export default function LoginPage() {
 
           <p className="text-center text-xs text-gray-500 mt-6">By signing in, you agree to Terms & Policy</p>
         </form>
+        </div>
       </div>
-    </div>
-    <div className="flex w-full overflow-hidden">
+
+      <div className="absolute flex h-80 w-full bottom-0 overflow-hidden">
         <img
           src={bgimg}
-          className="block h-88 shrink-0 -mr-5"
+          className="block h-88 shrink-0 -mr-5 object-cover"
         />
         <img
           src={bgimg2}
           className="block h-88 shrink-0 -ml-6 -mt-1"
         />
       </div>
+
     </div>
   )
 }

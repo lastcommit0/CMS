@@ -130,7 +130,7 @@ export class UserService {
     ) {
         const user = await prisma.user.findUnique({ where: { id: userId } });
 
-        if (!user) {
+        if (!user || !user.passwordHash) {
             throw new CustomError(ErrorCode.USER_NOT_FOUND);
         }
 
@@ -164,7 +164,7 @@ export class UserService {
         ] = await Promise.all([
             prisma.story.count({ where: { authorId: userId } }),
             prisma.story.count({ where: { authorId: userId, published: true } }),
-            prisma.story.count({ where: { authorId: userId, storyType: "DRAFT" } }),
+            prisma.story.count({ where: { authorId: userId, status: "DRAFT" } }),
             prisma.poll.count({ where: { createdBy: userId } }),
             prisma.poll.count({ where: { createdBy: userId, status: "ACTIVE" } }),
             prisma.report.count({ where: { generatedBy: userId } })
@@ -173,7 +173,7 @@ export class UserService {
         const recentStories = await prisma.story.findMany({
             where: { authorId: userId },
             take: 5,
-            orderBy: { createdAt: "desc" },
+            orderBy: { publishedAt: "desc" },
             select: {
                 id: true,
                 title: true,
@@ -181,7 +181,7 @@ export class UserService {
                 published: true,
                 status: true,
                 storyType: true,
-                createdAt: true
+                publishedAt: true
             }
         });
 

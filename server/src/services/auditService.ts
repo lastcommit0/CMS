@@ -77,7 +77,7 @@ export class AuditService {
         if (filters.resource) {
             where.resource = filters.resource;
         }
-        prisma.auditLog.findMany({
+        const logs = await prisma.auditLog.findMany({
             where,
             take: filters.limit,
             orderBy: { createdAt: 'desc' },
@@ -91,9 +91,10 @@ export class AuditService {
                 }
             }
         });
+        return logs;
     }
 
-    static async fetchAuditStats(filters: any) {
+    static async fetchAuditStats(dateFrom: Date, dateTo: Date) {
         const where: any = {};
         const [totalLogs, byAction, byResource, topUsers] = await Promise.all([
             prisma.auditLog.count({ where }),

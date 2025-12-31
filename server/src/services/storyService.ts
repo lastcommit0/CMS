@@ -19,7 +19,7 @@ export class StoryService {
           metaTags: true,
           _count: { select: { assets: true } }
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { publishedAt: 'desc' }
       }),
       prisma.story.count({ where: filters })
     ]);
@@ -109,22 +109,38 @@ export class StoryService {
   static async publish(id: string) {
     return prisma.story.update({
       where: { id },
-      data: { published: true, storyType: 'PUBLISHED' }
+      data: { published: true, status: 'PUBLISHED' }
     });
   }
 
-  static async unpublish(id: string) {
+  static async hold(id: string) {
     return prisma.story.update({
       where: { id },
-      data: { published: false, storyType: 'DRAFT' }
+      data: { published: false, status: 'DRAFT' }
     });
   }
 
   static async schedule(id: string, scheduleAt: string) {
     return prisma.story.update({
       where: { id },
-      data: { scheduleAt: new Date(scheduleAt), storyType: 'SCHEDULED' }
+      data: { scheduleAt: new Date(scheduleAt), status: 'SCHEDULED' }
     });
+  }
+
+  static async pending(id: string){
+    return prisma.story.update({
+      where: { id },
+      data: { status: 'REVIEW' }
+    });
+  }
+
+  static async stats(){
+    const [published, pending, planned, holdReject] = await Promise.all([
+      prisma.story.count({ where: { published: true } }),
+      prisma.story.count({ where: { status: 'REVIEW' } }),
+      prisma.story.count({ where: { status: 'SCHEDULED' } }),
+      prisma.story.count({ where: { status: 'REVIEW'} })
+    ]);
   }
 
   static async addAsset(storyId: string, data: any) {

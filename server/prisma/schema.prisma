@@ -8,49 +8,57 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  name         String
-  email        String     @unique
-  phone        String     @unique
-  passwordHash String
-  role         Role
-  status       UserStatus @default(ACTIVE)
+  id                  String     @id @default(cuid())
+  name                String
+  email               String     @unique
+  phone               String     @unique
+  passwordHash        String?
+  authProvider        AuthProvider @default(LOCAL)  
 
-  roles            UserRole[]
-  oauthAccounts    OAuthAccount[]
-  stories          Story[]
-  polls            Poll[]
-  reports          Report[]
-  activityLogs     AuditLog[]
-  pollVotes        PollVote[]
-  
-  managerId        String?
-  manager          User?              @relation("UserManager", fields: [managerId], references: [id], onDelete: SetNull)
-  subordinates     User[]             @relation("UserManager")
-  
-  profile          UserProfile?
-  sessions         Session[]
-  
-  createdById      String?
-  createdBy        User?              @relation("UserCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  createdUsers     User[]             @relation("UserCreator")
-  
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  
+  role                Role
+  status              UserStatus  @default(ACTIVE)
+
+  failedLoginAttempts Int         @default(0)
+  accountLockedUntil  DateTime?   
+
+  roles         UserRole[]
+  oauthAccounts OAuthAccount[]
+  stories       Story[]
+  polls         Poll[]
+  reports       Report[]
+  activityLogs  AuditLog[]
+  pollVotes     PollVote[]
+
+  managerId    String?
+  manager      User?   @relation("UserManager", fields: [managerId], references: [id], onDelete: SetNull)
+  subordinates User[]  @relation("UserManager")
+
+  profile  UserProfile?
+  sessions Session[]
+
+  createdById  String?
+  createdBy    User?   @relation("UserCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdUsers User[]  @relation("UserCreator")
+
+  storyEdited StoryVersion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([email])
   @@index([phone])
   @@index([status])
 }
 
+
 model UserRole {
   id     String @id @default(cuid())
   userId String
   roleId String
-  
+
   user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   role RoleModel @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  
+
   @@unique([userId, roleId])
   @@index([userId])
 }
@@ -60,13 +68,13 @@ model RoleModel {
   name        Role       @unique
   description String?
   userRoles   UserRole[]
-  
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model OAuthAccount {
-  id                String   @id @default(cuid())
+  id                String  @id @default(cuid())
   userId            String
   provider          String
   providerAccountId String
@@ -77,9 +85,9 @@ model OAuthAccount {
   scope             String?
   idToken           String?
   sessionState      String?
-  
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@unique([provider, providerAccountId])
   @@index([userId])
 }
@@ -92,9 +100,9 @@ model UserProfile {
   location    String?
   bio         String?
   avatar      String?
-  
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -107,14 +115,16 @@ model Session {
   ipAddress        String?
   expiresAt        DateTime
   revoked          Boolean  @default(false)
-  
+  lastUsedAt       DateTime?   
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   createdAt DateTime @default(now())
-  
+
   @@index([userId])
   @@index([expiresAt])
 }
+
 
 model Story {
   id         String      @id @default(cuid())
@@ -128,19 +138,35 @@ model Story {
   priority   Int         @default(0)
   published  Boolean     @default(false)
   scheduleAt DateTime?
-  
-  assets     StoryAsset[]
-  sections   StorySection[]
-  metaTags   MetaTag[]
-  author     User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+
+  assets   StoryAsset[]
+  sections StorySection[]
+  metaTags MetaTag[]
+  author   User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  version  StoryVersion[]
+
+  publishedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   @@index([slug])
   @@index([authorId])
   @@index([status])
   @@index([published])
+}
+
+model StoryVersion {
+  id       String  @id @default(cuid())
+  storyId  String
+  content  Json
+  editedBy String
+  reason   String?
+
+  story  Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  editor User  @relation(fields: [editedBy], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([storyId])
 }
 
 model StoryAsset {
@@ -149,25 +175,25 @@ model StoryAsset {
   type     AssetType
   fileUrl  String
   metadata Json?
-  
+
   story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  
+
   createdAt DateTime @default(now())
-  
+
   @@index([storyId])
 }
 
 model Section {
-  id       String   @id @default(cuid())
+  id       String  @id @default(cuid())
   name     String
-  slug     String   @unique
-  isActive Boolean  @default(true)
-  
+  slug     String  @unique
+  isActive Boolean @default(true)
+
   stories StorySection[]
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([slug])
 }
 
@@ -177,12 +203,12 @@ model StorySection {
   sectionId  String
   priority   Int     @default(0)
   isFeatured Boolean @default(false)
-  
+
   story   Story   @relation(fields: [storyId], references: [id], onDelete: Cascade)
   section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  
+
   createdAt DateTime @default(now())
-  
+
   @@unique([storyId, sectionId])
   @@index([sectionId])
   @@index([priority])
@@ -196,7 +222,7 @@ model PriorityLog {
   newPriority Int
   changedById String
   changedAt   DateTime @default(now())
-  
+
   @@index([storyId])
   @@index([changedAt])
 }
@@ -208,14 +234,14 @@ model Poll {
   status    PollStatus @default(ACTIVE)
   expiresAt DateTime?
   createdBy String
-  
+
   creator User         @relation(fields: [createdBy], references: [id], onDelete: Cascade)
   options PollOption[]
   votes   PollVote[]
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([status])
   @@index([createdBy])
 }
@@ -224,10 +250,10 @@ model PollOption {
   id     String @id @default(cuid())
   pollId String
   text   String
-  
+
   votes PollVote[]
   poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
-  
+
   @@index([pollId])
 }
 
@@ -237,31 +263,31 @@ model PollVote {
   optionId  String
   userId    String?
   ipAddress String?
-  
+
   poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
   option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
   user   User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
+
   createdAt DateTime @default(now())
-  
+
   @@unique([pollId, userId])
   @@unique([pollId, ipAddress])
   @@index([pollId])
 }
 
 model Category {
-  id       String   @id @default(cuid())
+  id       String  @id @default(cuid())
   name     String
-  slug     String   @unique
+  slug     String  @unique
   parentId String?
-  isActive Boolean  @default(true)
-  
+  isActive Boolean @default(true)
+
   parent        Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   subcategories Category[] @relation("CategoryHierarchy")
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([slug])
   @@index([parentId])
 }
@@ -274,56 +300,55 @@ model MetaTag {
   ogTitle         String?
   ogDescription   String?
   ogImage         String?
-  
+
   story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  
+
   @@index([storyId])
 }
 
 model Report {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   type        String
   filters     Json
   filterUrl   String?
   generatedBy String
-  
+
   user User @relation(fields: [generatedBy], references: [id], onDelete: Cascade)
-  
+
   createdAt DateTime @default(now())
-  
+
   @@index([generatedBy])
   @@index([createdAt])
 }
 
 model AuditLog {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   userId    String
   action    String
   resource  String?
   metadata  Json?
   ipAddress String
-  
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   createdAt DateTime @default(now())
-  
+
   @@index([userId])
   @@index([createdAt])
 }
 
-enum StoryType {
+enum StoryStatus {
   DRAFT
   REVIEW
   PUBLISHED
   SCHEDULED
 }
 
-enum StoryStatus {
+enum StoryType {
   NEWS
   MAGAZINE
   BLOG
   VIDEO
-  PDF
 }
 
 enum AssetType {
@@ -365,4 +390,11 @@ enum UserStatus {
   ACTIVE
   SUSPENDED
   DEACTIVATED
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  APPLE
+  WHATSAPP
 }

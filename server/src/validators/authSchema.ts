@@ -17,9 +17,14 @@ export const registerSchema = z.object({
 
 export const loginSchema = z.object({
   identifier: z.email(),
-  password: z.string().min(8)
+  password: z.string().min(8),
+  captcha: z.string()
 });
 
 export const refreshSchema = z.object({
   refreshToken: z.string().min(1)
+});
+
+export const identifySchema = z.object({
+  identifier: z.email()
 });

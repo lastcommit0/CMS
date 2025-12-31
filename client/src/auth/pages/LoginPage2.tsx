@@ -29,9 +29,11 @@ export default function LoginPage2() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f0] flex flex-col">
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
+    <div className="relative min-h-screen w-full bg-[#f5f5f0] flex flex-col">
+      <div className="absolute inset-x-0 top-1/2 z-20 flex justify-center 
+                -translate-y-[75%]">
+        <div className="w-full max-w-[420px] bg-white rounded-lg shadow-lg px-8 py-7">
+
           {/* Logo and Title */}
           <div className="flex items-center gap-2 mb-8">
             <div className="w-8 h-8 bg-[#f6f7f8] rounded flex items-center justify-center">
@@ -96,7 +98,7 @@ export default function LoginPage2() {
         </div>
       </div>
 
-      <div className="flex w-full overflow-hidden">
+      <div className="absolute flex w-full bottom-0 overflow-hidden">
         <img
           src={bgimg}
           className="block h-88 shrink-0 -mr-5"
@@ -106,6 +108,7 @@ export default function LoginPage2() {
           className="block h-88 shrink-0 -ml-6 -mt-1"
         />
       </div>
+
     </div>
   )
 }

@@ -13,15 +13,29 @@ import ViewStory from "./pages/StoryManagement/ViewStory"
 import ScheduledStory from "./pages/StoryManagement/ScheduledStory"
 import LoginPage from "./auth/pages/LoginPage"
 import LoginPage2 from "./auth/pages/LoginPage2"
+import { UserLayout } from "./pages/UserManagement/UserLayout"
+import UserAccessManagement from "./pages/UserManagement/UserAccessManagement"
+import AdminUserList from "./pages/UserManagement/AdminUserList"
+import Users from "./pages/UserManagement/Users"
+import LoginLayout from "./auth/pages/LoginLayout"
 
 
 export const router = createBrowserRouter([
   {
-    path: "/login",
-    element: <LoginPage />,
+    path: "/auth",
+    element: <LoginLayout />,
     children: [
       {
-        
+        index: true,
+        element: <Navigate to="login" replace />,
+      },
+      {
+        path: 'login',
+        element: <LoginPage />
+      },
+      {
+        path: 'login2',
+        element: <LoginPage2 />
       }
     ]
   },
@@ -97,20 +111,20 @@ export const router = createBrowserRouter([
       },
       {
         path: 'users',
-        element: <div>Users</div>,
+        element: <UserLayout/>,
         children: [
           { index: true, element: <Navigate to="user-access-management" replace /> },
           {
             path: 'user-access-management',
-            element: <div>User Access Management</div>
+            element: <UserAccessManagement/>
           },
           {
             path: 'admin-user-list',
-            element: <div>Admin User List</div>
+            element: <AdminUserList />
           },
           {
             path: 'users',
-            element: <div>Users</div>
+            element: <Users/>
           }
         ]
       }

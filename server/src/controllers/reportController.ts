@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import { ReportService } from '../services/reportService';
-import { generateReportSchema } from '../validators/reportSchema';
+import { Request, Response } from "express";
+import { ReportService } from "../services/reportService";
+import { generateReportSchema } from "../validators/reportSchema";
 
 export const generateReport = async (req: Request, res: Response) => {
   const payload = generateReportSchema.parse(req.body);
@@ -9,8 +9,11 @@ export const generateReport = async (req: Request, res: Response) => {
     payload.type,
     payload.filters,
     req.user!.id,
-    req.ip || 'unknown'
+    req.ip || "unknown"
   );
 
-  res.json({ success: true, data });
+  res.status(200).json({
+    success: true,
+    data,
+  });
 };

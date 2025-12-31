@@ -255,7 +255,7 @@ export const SectionService = {
         story: {
           select: {
             published: true,
-            storyType: true
+            status: true
           }
         }
       }
@@ -263,7 +263,7 @@ export const SectionService = {
     const totalStories = stories.length;
     const featuredStories = stories.filter(s => s.isFeatured).length;
     const publishedStories = stories.filter(s => s.story?.published).length;
-    const draftStories = stories.filter(s => s.story?.storyType === 'DRAFT').length;
+    const draftStories = stories.filter(s => s.story?.status === 'DRAFT').length;
 
 
     return { totalStories, featuredStories, publishedStories, draftStories };

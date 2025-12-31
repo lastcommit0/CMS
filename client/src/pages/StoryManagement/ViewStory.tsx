@@ -8,7 +8,8 @@ const data = [
     avatar: "https://i.pravatar.cc/40?img=1",
     title: "Noida Bank Employee Booked For Illicitly Transferring Rs500 Crores...",
     published: "03-Jan-2023 | 08:53am",
-    managedBy: "Kianna Kenter",
+    updated: "03-Jan-2023 | 08:53am",
+    approvedBy: "Kianna Kenter",
     status: "Published",
     priority: 1,
   },
@@ -18,7 +19,8 @@ const data = [
     avatar: "https://i.pravatar.cc/40?img=2",
     title: "Dunki Release LIVE Updates: SRK Fans Call Film...",
     published: "06-Jan-2023 | 09:55am",
-    managedBy: "Phillip Ekstrom",
+    updated: "06-Jan-2023 | 09:55am",
+    approvedBy: "Phillip Ekstrom",
     status: "Unpublished",
     priority: 0,
   },
@@ -29,10 +31,10 @@ export default function ViewStory() {
 
 
     return (
-        <div className="ml-36">
+        <div className="">
             <div className=" text-black px-6 pt-2">
                 <header className="flex justify-between items-center pb-2 min-w-full">
-                    <div className="text-[#243874] font-semibold text-[18px]">Priority Management</div>
+                    <div className="text-[#243874] font-semibold text-[18px]">View Story</div>
                     <div className="flex flex-row gap-4">
                         <div className="md:w-90 w-60 flex items-center overflow-hidden border-b border-gray-300 bg-[#EAEAEA] rounded-sm">
                             <input
@@ -47,61 +49,26 @@ export default function ViewStory() {
                                 <Search size={16} />
                             </button>
                         </div>
-                        <div className="relative w-[180px]">
-                            <select
-                                className="w-full appearance-none border-b border-gray-300 bg-[#EAEAEA] rounded-sm px-2 py-2 pr-8 text-sm text-gray-600 outline-none"
-                            >
-                                <option value="home" className="text-gray-400">Home</option>
-                                <option value="active">Politics</option>
-                                <option value="inactive">Sports</option>
-                                <option value="inactive">Trending</option>
-                                <option value="inactive">Breaking</option>
-                                <option value="inactive">Regional</option>
-                            </select>
-
-                            {/* Custom dropdown icon */}
-                            <svg
-                                className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                viewBox="0 0 24 24"
-                            >
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </div>
-
                     </div>
                 </header>
             </div>
             <div className="border-b"></div>
             <div className="bg-white rounded-lg shadow-sm overflow-hidden m-4">
       <div className="overflow-x-auto">
-        <table className="min-w-[1000px] w-full border-collapse">
+        <table className="min-w-[1140px] w-full border-collapse">
           <thead className="bg-gray-50 text-sm text-gray-600">
             <tr>
-              <th className="px-4 py-3 text-center">Priority</th>
               <th className="px-4 py-3 text-left">ID</th>
               <th className="px-4 py-3 text-left">Author</th>
               <th className="px-4 py-3 text-left">Title</th>
-              <th className="px-4 py-3 text-left">Managed By</th>
-              <th className="px-4 py-3 text-center">Status</th>
-              <th className="px-4 py-3 text-center">Action</th>
+              <th className="px-4 py-3 text-left">Approved By</th>
+              <th className="px-4 py-3 text-left">Status</th>
             </tr>
           </thead>
 
           <tbody className="divide-y">
             {data.map((item) => (
               <tr key={item.id} className="text-sm text-gray-700">
-                {/* Priority */}
-                <td className="px-4 py-4 text-center">
-                  <div className="inline-flex items-center gap-2 border rounded-md px-2 py-1">
-                    <button className="text-gray-500 hover:text-black">-</button>
-                    <span>{item.priority}</span>
-                    <button className="text-gray-500 hover:text-black">+</button>
-                  </div>
-                </td>
-
                 {/* ID */}
                 <td className="px-4 py-4">{item.id}</td>
 
@@ -120,33 +87,31 @@ export default function ViewStory() {
                 {/* Title */}
                 <td className="px-4 py-4 max-w-md">
                   <div className="font-medium truncate">{item.title}</div>
-                  <div className="text-xs text-gray-500">
-                    Published On : {item.published}
+                  <div className="flex flex-row gap-1">
+                    <div className="text-[12px] text-gray-500 flex flex-row items-center">
+                      Published On :  <span className="text-black/80 text-[10px] ml-1">{item.published}</span>
+                    </div>
+                    <div className="text-[12px] text-gray-500">
+                      Updated On : <span className="text-black/80 text-[10px] ml-1">{item.published}</span>
+                    </div>
                   </div>
                 </td>
 
-                {/* Managed By */}
-                <td className="px-4 py-4">{item.managedBy}</td>
+                {/* Approved By */}
+                <td className="px-4 py-4">{item.approvedBy}</td>
 
                 {/* Status */}
-                <td className="px-4 py-4 text-center">
+                <td className="px-4 py-4 text-start">
                   <span
-                    className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium
+                    className={`inline-flex items-center gap-1 bg-white border rounded-lg px-3 py-1 text-xs font-medium
                     ${
                       item.status === "Published"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
+                        ? " text-green-700"
+                        : " text-red-700"
                     }`}
                   >
                     ● {item.status}
                   </span>
-                </td>
-
-                {/* Action */}
-                <td className="px-4 py-4 text-center">
-                  <button className="text-gray-500 hover:text-black">
-                    <Pencil size={16} />
-                  </button>
                 </td>
               </tr>
             ))}

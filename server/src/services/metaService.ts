@@ -26,7 +26,7 @@ export class MetaService {
     }
 
     const meta = await prisma.metaTag.upsert({
-      where: { storyId },
+      where: { id: storyId },
       update: data,
       create: { storyId, ...data }
     });

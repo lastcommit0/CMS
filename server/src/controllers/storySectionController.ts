@@ -1,7 +1,7 @@
-import { addStorySchema } from "../validators/storySectionSchema";
 import { Request, Response } from "express";
+import { addStorySchema } from "../validators/storySectionSchema";
 import { addStorySection } from "../services/storySectionService";
-import { logAudit } from "../services/auditService";
+import { AuditService } from "../services/auditService";
 
 export const addStory = async (req: Request, res: Response) => {
   const payload = addStorySchema.parse(req.body);
@@ -9,11 +9,14 @@ export const addStory = async (req: Request, res: Response) => {
 
   const result = await addStorySection(sectionId, payload);
 
-  await logAudit({
-    userId: req.user!.id,
+  await AuditService.logAudit({
+    userId: req.user?.id, 
     action: "STORY_ADDED_TO_SECTION",
     resource: "StorySection",
-    metadata: { sectionId, storyId: payload.storyId },
+    metadata: {
+      sectionId,
+      storyId: payload.storyId,
+    },
     ipAddress: req.ip,
   });
 
@@ -21,4 +24,4 @@ export const addStory = async (req: Request, res: Response) => {
     success: true,
     data: result,
   });
-}
+};

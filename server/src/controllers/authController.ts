@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
-import { registerSchema, loginSchema, refreshSchema } from "../validators/authSchema";
+import { registerSchema, loginSchema, refreshSchema, identifySchema } from "../validators/authSchema";
 import * as authService from "../services/authService";
 import catchAsync from "../middleware/catchAsync";
+import CustomError from "../errors/customError";
 
 
 export const register =  async (req: Request, res: Response) => {
@@ -16,9 +17,32 @@ export const register =  async (req: Request, res: Response) => {
 }
 
 
+export const googleCallback = async (req: Request, res: Response) => {
+    if (!req.user) {
+      return res.redirect(
+        `http://127.0.0.1:5173//login?error=oauth_failed`
+      )
+    }
+    const googleUser = req.user as any
+
+    const payload = {
+      provider: "GOOGLE",
+      providerAccountId: googleUser.id,
+      email: googleUser.emails?.[0]?.value,
+      name: googleUser.displayName,
+      avatar: googleUser.photos?.[0]?.value,
+    }
+
+    const result = await authService.handleGoogleOAuth(payload, req)
+
+    res.redirect(`http://127.0.0.1:5173/dashboard?` +
+        `accessToken=${result.accessToken}&refreshToken=${result.refreshToken}`)
+}
+
+
 export const login = async (req: Request, res: Response) => {
-    const {identifier, password} = loginSchema.parse(req.body);
-    const result = await authService.loginUser(identifier, password, req);
+    const {identifier, password, captcha} = loginSchema.parse(req.body);
+    const result = await authService.loginUser(identifier, password, captcha, req);
 
     const {passwordHash, ...userData} = result.user;
 
@@ -29,6 +53,15 @@ export const login = async (req: Request, res: Response) => {
             accessToken: result.accessToken,
             refreshToken: result.refreshToken
         }
+    })
+}
+
+export const identify = async (req: Request, res: Response) => {
+    const {identifier} = identifySchema.parse(req.body);
+    const result = await authService.identifyUser(identifier);
+    res.status(200).json({
+        success: true,
+        data: result
     })
 }
 
