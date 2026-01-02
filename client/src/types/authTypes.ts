@@ -1,6 +1,7 @@
 export interface LoginCredentials {
   identifier: string;
   password: string;
+  captcha?: string;
 }
 
 export interface RegisterData {
@@ -14,6 +15,12 @@ export interface RegisterData {
   jobType: 'FULL_TIME' | 'PART_TIME' | 'FREELANCE' | 'INTERN';
   location?: string;
   bio: string;
+}
+
+export interface Identify {
+  userId: string
+  username: string
+  requireCaptcha: boolean
 }
 
 export interface UserProfile {

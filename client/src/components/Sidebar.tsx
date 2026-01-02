@@ -11,13 +11,13 @@ const menuItems = [
     id: "dashboard",
     label: "Dashboard",
     icon: layout,
-    path: "/dashboard",
+    path: "/user/dashboard",
   },
   {
     id: "stories",
     label: "Story Management",
     icon: text,
-    path: "/stories",
+    path: "/user/stories",
     subItems: [
       { label: "Add Story", path: "add" },
       { label: "View Story", path: "view" },
@@ -32,13 +32,13 @@ const menuItems = [
     id: "priority",
     label: "Priority Management",
     icon: huge,
-    path: "/priority",
+    path: "/user/priority",
   },
   {
     id: "tools",
     label: "Tools",
     icon: tool,
-    path: "/tools",
+    path: "/user/tools",
     subItems: [
       { label: "Category Management", path: "category-management" },
       { label: "Meta Management", path: "meta-management" },
@@ -49,7 +49,7 @@ const menuItems = [
     id: "users",
     label: "User Management",
     icon: users,
-    path: "/users",
+    path: "/user/users",
     subItems: [
       { label: "User Access Management", path: "user-access-management" },
       { label: "Admin User List", path: "admin-user-list" },

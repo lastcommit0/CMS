@@ -22,25 +22,25 @@ import LoginLayout from "./auth/pages/LoginLayout"
 
 export const router = createBrowserRouter([
   {
-    path: "/auth",
+    path: "/",
     element: <LoginLayout />,
     children: [
       {
         index: true,
-        element: <Navigate to="login" replace />,
+        element: <Navigate to="auth" replace />,
       },
       {
-        path: 'login',
+        path: 'auth',
         element: <LoginPage />
       },
       {
-        path: 'login2',
+        path: 'login',
         element: <LoginPage2 />
       }
     ]
   },
   {
-    path: '/',
+    path: '/user',
     element: <App />,
     children: [
       {

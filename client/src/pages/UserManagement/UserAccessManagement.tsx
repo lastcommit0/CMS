@@ -39,7 +39,7 @@ export default function UserAccessManagement() {
   ])
 
   return (
-    <div className="ml-90 w-full min-h-screen bg-[#F8F8F8]">
+    <div className="w-full min-h-screen bg-[#F8F8F8]">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-4 bg-white">
         <h1 className="text-[18px] font-semibold text-[#243874]">
@@ -109,8 +109,19 @@ export default function UserAccessManagement() {
 
       {/* Modal */}
       {open && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white w-[420px] rounded-md shadow-lg">
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+
+          {/* BACKGROUND OVERLAY (this was broken earlier) */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setOpen(false)}
+          />
+
+          {/* MODAL (centered & sharp) */}
+          <div
+            className="relative left-44 bg-white w-[510px] rounded-md shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Modal header */}
             <div className="flex items-center justify-between px-4 py-3 border-b">
               <h2 className="font-semibold text-[#243874]">
@@ -129,7 +140,7 @@ export default function UserAccessManagement() {
                   Select Role <span className="text-red-500">*</span>
                 </label>
                 <Select>
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="mt-1 w-full">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
@@ -172,6 +183,7 @@ export default function UserAccessManagement() {
           </div>
         </div>
       )}
+
     </div>
   )
 }

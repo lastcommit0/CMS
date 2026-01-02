@@ -140,80 +140,93 @@ export async function registerUser(data: any, createdById?: string, ipAddress?: 
 }
 
 
-export async function loginUser(identifier: string, password: string, captchaInput: string, req: any) {
-    const user = await prisma.user.findFirst({
-        where: {
-            OR: [
-                { email: identifier },
-                { phone: identifier }
-            ],
-            status: 'ACTIVE'
-        }
-    });
-    if (!user || !user.passwordHash) {
-        throw new CustomError(ErrorCode.USER_NOT_FOUND);
-    }
-    const valid = await argon2.verify(user.passwordHash, password);
-    if (!valid) {
-        await prisma.user.update({
-            where: { id: user.id },
-            data: {
-                failedLoginAttempts: {
-                    increment: 1
-                }
-            }
-        })
-        throw new CustomError(ErrorCode.AUTH_INVALID_CREDENTIALS);
-    }
+export async function loginUser(
+  userId: string,
+  password: string,
+  captchaInput: string,
+  req: any
+) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId }
+  });
 
+  if (!user || !user.passwordHash) {
+    throw new CustomError(ErrorCode.USER_NOT_FOUND);
+  }
+
+  if (user.failedLoginAttempts >= 2) {
+    if (!captchaInput || captchaInput !== req.session.captcha) {
+      throw new CustomError(ErrorCode.AUTH_INVALID_CREDENTIALS);
+    }
+  }
+
+  const valid = await argon2.verify(user.passwordHash, password);
+  if (!valid) {
     await prisma.user.update({
-        where: { id: user.id },
-        data: {
-            failedLoginAttempts: 0
-        }
-    })
-
-    const accessToken = jwt.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET!, { expiresIn: '24h' });
-    const refreshToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '7d' });
-
-    const refreshTokenHash = await argon2.hash(refreshToken);
-
-    await prisma.session.create({
-        data: {
-            userId: user.id,
-            refreshTokenHash,
-            device: req.headers["user-agent"],
-            ipAddress: req.ip,
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        }
+      where: { id: user.id },
+      data: { failedLoginAttempts: { increment: 1 } }
     });
-    return { user, accessToken, refreshToken };
+    throw new CustomError(ErrorCode.AUTH_INVALID_CREDENTIALS);
+  }
+
+  // reset attempts
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { failedLoginAttempts: 0 }
+  });
+
+  const accessToken = jwt.sign(
+    { userId: user.id, role: user.role },
+    process.env.JWT_SECRET!,
+    { expiresIn: '24h' }
+  );
+
+  const refreshToken = jwt.sign(
+    { userId: user.id },
+    process.env.JWT_SECRET!,
+    { expiresIn: '7d' }
+  );
+
+  const refreshTokenHash = await argon2.hash(refreshToken);
+
+  await prisma.session.create({
+    data: {
+      userId: user.id,
+      refreshTokenHash,
+      device: req.headers["user-agent"],
+      ipAddress: req.ip,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    }
+  });
+
+  return { user, accessToken, refreshToken };
 }
 
 export async function identifyUser(identifier: string) {
-    const user = await prisma.user.findFirst({
-        where: {
-            OR: [
-                { email: identifier },
-                { phone: identifier }
-            ]
-        }
-    });
-
-    if (!user) {
-        throw new CustomError(ErrorCode.USER_NOT_FOUND);
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { email: identifier },
+        { phone: identifier }
+      ]
     }
+  });
 
-    if (user.status !== 'ACTIVE') {
-        throw new CustomError(ErrorCode.USER_INACTIVE);
-    }
+  if (!user) {
+    throw new CustomError(ErrorCode.USER_NOT_FOUND);
+  }
 
-    return {
-        userId: user.id,
-        authProvider: user.authProvider,
-        requireCaptcha: user.failedLoginAttempts >= 2
-    }
+  if (user.status !== 'ACTIVE') {
+    throw new CustomError(ErrorCode.USER_INACTIVE);
+  }
+
+  return {
+    userId: user.id,
+    username: user.email, 
+    requireCaptcha: user.failedLoginAttempts >= 2
+  };
 }
+
 
 export async function refreshUser(refreshToken: string, req: any) {
     const decoded = jwt.verify(
