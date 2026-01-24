@@ -1,98 +1,138 @@
+import SearchBox from "@/components/SearchBox"
+import { Button } from "@/components/ui/button"
+import { useState } from "react";
+import { MoreHorizontalIcon } from "lucide-react";
+import NewPaper from "./components/NewPaper";
 
-
+const data = [
+    {
+        id: "1998498",
+        image: "https://i.pravatar.cc/40?img=1",
+        type: "E-Paper",
+        title: "Noida Bank.",
+        publishedDate: "03-Jan-2023 08:53am",
+    },
+    {
+        id: "1568499",
+        image: "https://i.pravatar.cc/40?img=2",
+        type: "Magazine",
+        title: "Noida Bank.",
+        publishedDate: "03-Jan-2023 08:53am",
+    },
+    {
+        id: "1935499",
+        image: "https://i.pravatar.cc/40?img=3",
+        type: "E-Paper",
+        title: "Noida Bank.",
+        publishedDate: "03-Jan-2023 08:53am",
+    },
+    {
+        id: "198499",
+        image: "https://i.pravatar.cc/40?img=4",
+        type: "Magazine",
+        title: "Noida Bank.",
+        publishedDate: "03-Jan-2023 08:53am",
+    },
+    {
+        id: "199849",
+        image: "https://i.pravatar.cc/40?img=5",
+        type: "E-Paper",
+        title: "Noida Bank.",
+        publishedDate: "03-Jan-2023 08:53am",
+    },
+    {
+        id: "998499",
+        image: "https://i.pravatar.cc/40?img=6",
+        type: "Magazine",
+        title: "Noida Bank.",
+        publishedDate: "03-Jan-2023 08:53am",
+    },
+    {
+        id: "199899",
+        image: "https://i.pravatar.cc/40?img=7",
+        type: "E-Paper",
+        title: "Noida Bank.",
+        publishedDate: "03-Jan-2023 08:53am",
+    },
+]
 
 export default function PdfList() {
+    const [open, setOpen] = useState(false);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+    const handleOpenModal = () => {
+        console.log("open modal");
+        setOpen(true);
+    }
+
+    const handleCloseModal = () => {
+        setOpen(false);
+    }
 
     return (
-        <div className="space-y-6 ml-96 p-6 bg-white min-h-screen max-w-7xl shadow">
-  {/* HEADER */}
-  <div className="flex items-center justify-between border-b pb-3">
-    <h2 className="text-lg font-semibold text-blue-700">
-      Add New E-Paper PDF
-    </h2>
+        <div>
+            {!open && (
+                <div>
+            <header className="flex flex-row justify-between items-center pb-4 min-w-full px-8 py-4">
+                <div className="text-[18px] text-[#243874] font-semibold">
+                    E-Paper PDF List
+                </div>
+                <div className="flex flex-row gap-4">
+                    <SearchBox value="" onChange={(v) => { }} placeholder="Search by Text or ID" />
+                    <Button
+                        onClick={() => handleOpenModal()}
+                        className="bg-[#243874] text-white h-9 px-4 hover:bg-[#243874]/90 rounded-[4px]"
+                    >
+                        + New Paper
+                    </Button>
+                </div>
+            </header>
+            <div className="border-b"></div>
+            <div className="bg-white rounded-lg m-4 pl-4">
+                <div className="grid grid-cols-4 gap-4">
+                    {data.map((item) => (
+                        <div
+                            key={`${item.id}`}
+                            className="flex flex-col gap-2"
+                        >
+                            <PdfListItem image={item.image} type={item.type} />
 
-    <div className="flex gap-3">
-      <button className="px-4 py-1.5 text-sm border rounded-md">
-        Cancel
-      </button>
-      <button className="px-4 py-1.5 text-sm border rounded-md bg-gray-100">
-        Download PDF
-      </button>
-      <button className="px-4 py-1.5 text-sm rounded-md bg-blue-700 text-white">
-        Submit
-      </button>
-    </div>
-  </div>
-
-  {/* PDF TYPE */}
-  <div className="flex items-center gap-6 text-sm">
-    <span className="font-medium text-gray-700">PDF Type</span>
-
-    <label className="flex items-center gap-2">
-      <input type="radio" name="type" defaultChecked />
-      E-Paper
-    </label>
-
-    <label className="flex items-center gap-2">
-      <input type="radio" name="type" />
-      Magazine
-    </label>
-  </div>
-
-  {/* TOP UPLOAD SECTION */}
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-    {/* COVER IMAGE */}
-    <UploadBox
-      title="Drag and drop Cover image, or"
-      subtitle="Minimum 800px width recommended. Max 10MB each"
-      browseText="Browse"
-      icon="image"
-    />
-
-    {/* PDF UPLOAD */}
-    <UploadBox
-      title="Drag and drop PDF file here, or"
-      subtitle="Max PDF file size is 10MB"
-      browseText="Browse"
-      icon="pdf"
-    />
-  </div>
-
-  {/* IMAGE QUEUE SECTION */}
-  <UploadBox
-    title="Drag and drop images file here, or"
-    subtitle="Minimum 800px width recommended. You can select multiple images."
-    browseText="Browse"
-    icon="image"
-    large
-  />
-</div>
-
+                            <div>
+                                <div className="font-medium">{item.title}</div>
+                                <p className="text-sm text-gray-500">
+                                    {item.publishedDate}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            </div>
+            )}
+            {open && (
+                <NewPaper onClose={handleCloseModal}/>
+            )}
+        </div>
     )
 }
 
-function UploadBox({ title, subtitle, browseText, icon, large }) {
-  return (
-    <div
-      className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 text-center
-      ${large ? "h-[220px]" : "h-[260px]"}`}
-    >
-      {/* ICON */}
-      <div className="mb-4">
-        {icon === "pdf" ? (
-          <span className="text-orange-500 font-bold text-xl">PDF</span>
-        ) : (
-          <div className="w-12 h-12 bg-orange-200 rounded-lg" />
-        )}
-      </div>
 
-      {/* TEXT */}
-      <p className="text-sm font-semibold text-gray-800">
-        {title}{" "}
-        <span className="text-blue-600 cursor-pointer">{browseText}</span>
-      </p>
+interface PdfListItemProps {
+    image: string;
+    type: string;
+}
 
-      <p className="mt-1 text-xs text-gray-500">{subtitle}</p>
-    </div>
-  );
+function PdfListItem({ image, type }: PdfListItemProps) {
+
+    return (
+        <div className="relative min-h-[306px] w-[235px] h-full">
+            <img src={image || ""} alt="Preview" className="w-full h-full object-cover border-2 rounded-lg overflow-hidden" />
+            <span
+                className={`absolute bottom-0 left-0 text-white p-1 rounded-bl-lg rounded-tr-lg ${type === "Magazine" ? "bg-[#FBAD40]" : "bg-[#243874]"}`}
+            >
+                {type}
+            </span>
+        </div>
+
+    )
 }

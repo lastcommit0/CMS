@@ -1,118 +1,97 @@
-import { X, Calendar, Plus } from "lucide-react"
+import Poll from "./components/Poll"
 import { useState } from "react"
+import SearchBox from "@/components/SearchBox"
+import { Button } from "@/components/ui/button"
+import { SquarePen } from "lucide-react"
+import { limitWords } from "@/utils/text"
 
-export default function CreatePoll({ onClose }: { onClose: () => void }) {
-  const [options, setOptions] = useState(["Option 1"])
 
-  const addOption = () => {
-    setOptions([...options, `Option ${options.length + 1}`])
-  }
+export default function CreatePoll() {
+    const [open, setOpen] = useState(false)
 
-  const removeOption = (index: number) => {
-    setOptions(options.filter((_, i) => i !== index))
-  }
+    const onClose = () => {
+        setOpen(false)
+    }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white w-full max-w-xl rounded shadow-lg">
-        {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b">
-          <h2 className="text-[#243874] font-semibold">Create Poll</h2>
-          <button onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
+    const onOpen = () => {
+        setOpen(true)
+    }
 
-        {/* Body */}
-        <div className="px-6 py-4 space-y-4">
-          {/* Title */}
-          <div>
-            <label className="text-sm font-medium">
-              Title <span className="text-red-500">*</span>
-            </label>
-            <input
-              className="w-full mt-1 px-3 py-2 border rounded text-sm outline-none"
-            />
-          </div>
+    const data = [
+        {
+            id: "1998498",
+            title: "Noida Bank Employee Booked For Illicitly Transferring Rs500 Crores...",
+            published: "03-Jan-2023 | 08:53am",
+            updated: "03-Jan-2023 | 08:53am",
+            scheduleDate: "03-Jan-2023 | 08:53am",
+            scheduleBy: "Kianna Kenter",
+        },
+        {
+            id: "1998499",
+            title: "Dunki Release LIVE Updates: SRK Fans Call Film...",
+            published: "06-Jan-2023 | 09:55am",
+            updated: "06-Jan-2023 | 09:55am",
+            scheduleDate: "06-Jan-2023 | 09:55am",
+            scheduleBy: "Phillip Ekstrom",
+        },
+    ]
 
-          {/* Description */}
-          <div>
-            <label className="text-sm font-medium">Description</label>
-            <textarea
-              className="w-full mt-1 px-3 py-2 border rounded text-sm outline-none"
-            />
-          </div>
-
-          {/* Options */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-sm font-medium">
-                Options <span className="text-red-500">*</span>
-              </label>
-              <button
-                className="text-sm text-blue-600 flex items-center gap-1"
-                onClick={addOption}
-              >
-                <Plus size={14} /> Add other options
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              {options.map((opt, index) => (
-                <div
-                  key={index}
-                  className="flex items-center border rounded px-3 py-2"
-                >
-                  <input type="radio" disabled className="mr-2" />
-                  <input
-                    className="flex-1 outline-none text-sm"
-                    defaultValue={opt}
-                  />
-                  <button onClick={() => removeOption(index)}>
-                    <X size={14} />
-                  </button>
+    return (
+        <div>
+            <header className="flex flex-row justify-between items-center pb-4 min-w-full px-6 py-4 border-b bg-white">
+                <div className="text-[18px] text-[#243874] font-semibold">
+                    Create Poll
                 </div>
-              ))}
+                <div className="flex flex-row gap-4">
+                    <SearchBox value="" onChange={(v) => { }} placeholder="Search by Text or ID" />
+                    <Button
+                        onClick={() => onOpen()}
+                        className="bg-[#243874] text-white h-9 px-4 hover:bg-[#243874]/90 rounded-[4px]"
+                    >
+                        + New Poll
+                    </Button>
+                </div>
+            </header>
+            <div className="bg-white rounded-lg overflow-hidden m-4">
+                <table className="min-w-[1010px] w-full border-collapse">
+                    <thead className="bg-gray-50 text-sm text-gray-600">
+                        <tr className="">
+                            <th className="px-4 py-3 text-left">ID</th>
+                            <th className="px-4 py-3 text-left">Title</th>
+                            <th className="px-4 py-3 text-left">Updated Date</th>
+                            <th className="px-4 py-3 text-left">Schedule Date</th>
+                            <th className="px-4 py-3 text-left">Schedule By</th>
+                            <th className="px-4 py-3 text-left">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {data.map((story) => (
+                            <tr key={story.id} className="text-sm text-gray-700">
+                                <td className="px-4 py-4">{story.id}</td>
+
+                                <td className="px-4 py-4 max-w-md">
+                                    <div className="font-medium truncate">{limitWords(story.title, 5)}</div>
+                                </td>
+
+                                <td className="px-4 py-4">{story.updated}</td>
+
+                                <td className="px-4 py-4">{story.scheduleDate}</td>
+
+                                <td className="px-4 py-4">{story.scheduleBy}</td>
+
+                                <td className="px-4 py-4 ">
+                                    <button className="text-gray-500 hover:text-black">
+                                        <SquarePen size={16} />
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
-          </div>
-
-          {/* Poll End Date */}
-          <div>
-            <label className="text-sm font-medium">
-              Poll End Date <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <input
-                className="w-full mt-1 px-3 py-2 border rounded text-sm outline-none"
-              />
-              <Calendar
-                size={16}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-              />
-            </div>
-          </div>
-
-          {/* Checkboxes */}
-          <div className="flex gap-6 text-sm">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" />
-              Active
-            </label>
-
-            <label className="flex items-center gap-2">
-              <input type="checkbox" />
-              Checked for All Articles
-            </label>
-          </div>
+            {open && (
+                <Poll onClose={onClose} />
+            )}
         </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t">
-          <button className="w-full bg-[#243874] text-white py-2 rounded">
-            Submit
-          </button>
-        </div>
-      </div>
-    </div>
-  )
+    )
 }

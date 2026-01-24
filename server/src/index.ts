@@ -5,6 +5,9 @@ import morgan from 'morgan';
 import errorHandler from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
 import routes from './routes';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
 
@@ -30,5 +33,5 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`API available at http://localhost:${PORT}/api`);
+  console.log(`API available at http://localhost:${PORT}`);
 });

@@ -22,7 +22,7 @@ const reports = [
 
 export default function DownloadReport() {
   return (
-    <div className="ml-90 px-6 py-4 bg-[#F5F6FA] min-h-screen">
+    <div className=" px-6 py-4 bg-white min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-[#243874] font-semibold text-lg">

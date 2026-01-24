@@ -16,7 +16,7 @@ export class StoryService {
           author: { select: { id: true, name: true, email: true } },
           sections: { include: { section: true } },
           assets: true,
-          metaTags: true,
+          meta: true,
           _count: { select: { assets: true } }
         },
         orderBy: { publishedAt: 'desc' }
@@ -34,7 +34,7 @@ export class StoryService {
         author: { select: { id: true, name: true, email: true }, include: { profile: true } },
         sections: { include: { section: true } },
         assets: true,
-        metaTags: true
+        meta: true
       }
     });
 
@@ -64,7 +64,7 @@ export class StoryService {
       },
       include: {
         sections: { include: { section: true } },
-        metaTags: true
+        meta: true
       }
     });
   }
@@ -97,7 +97,7 @@ export class StoryService {
       },
       include: {
         sections: { include: { section: true } },
-        metaTags: true
+        meta: true
       }
     });
   }
@@ -109,14 +109,14 @@ export class StoryService {
   static async publish(id: string) {
     return prisma.story.update({
       where: { id },
-      data: { published: true, status: 'PUBLISHED' }
+      data: { status: 'PUBLISHED' }
     });
   }
 
   static async hold(id: string) {
     return prisma.story.update({
       where: { id },
-      data: { published: false, status: 'DRAFT' }
+      data: { status: 'DRAFT' }
     });
   }
 
@@ -136,7 +136,7 @@ export class StoryService {
 
   static async stats(){
     const [published, pending, planned, holdReject] = await Promise.all([
-      prisma.story.count({ where: { published: true } }),
+      prisma.story.count({ where: { status: 'PUBLISHED' } }),
       prisma.story.count({ where: { status: 'REVIEW' } }),
       prisma.story.count({ where: { status: 'SCHEDULED' } }),
       prisma.story.count({ where: { status: 'REVIEW'} })

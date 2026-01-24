@@ -11,21 +11,21 @@ const AUTH_KEYS = {
   user: ['auth', 'current-user'] as const,
 };
 
-export const useCurrentUser = () => {
-  return useQuery<User | null>({
-    queryKey: AUTH_KEYS.user,
-    queryFn: async () => {
-      try {
-        const res = await authApi.getMe();
-        return res.data.data;
-      } catch {
-        return null;
-      }
-    },
-    enabled: !!accessTokenStore.get(),
-    staleTime: 5 * 60 * 1000,
-  });
-};
+// export const useCurrentUser = () => {
+//   return useQuery<User | null>({
+//     queryKey: AUTH_KEYS.user,
+//     queryFn: async () => {
+//       try {
+//         const res = await authApi.getMe();
+//         return res.data.data;
+//       } catch {
+//         return null;
+//       }
+//     },
+//     enabled: !!accessTokenStore.get(),
+//     staleTime: 5 * 60 * 1000,
+//   });
+// };
 
 
 export const useLogin = () => {
@@ -55,21 +55,15 @@ export const useLogin = () => {
 
 
 export const useRegister = () => {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
 
   return useMutation({
     mutationFn: async (data: RegisterData) => {
       const res = await authApi.register(data);
       return res.data.data!;
     },
-
-    onSuccess: ({ user, accessToken }) => {
-      accessTokenStore.set(accessToken);
-      queryClient.setQueryData(AUTH_KEYS.user, user);
+    onSuccess: () => {
 
       toast.success('Registration successful');
-      navigate('/dashboard');
     },
 
     onError: (error: any) => {

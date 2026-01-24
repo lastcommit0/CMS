@@ -68,7 +68,7 @@ export const SectionController = {
     res.json({ success: true });
   },
 
-  async addStory(req: Request, res: Response) {
+  async addStorySection(req: Request, res: Response) {
     const data = addStorySchema.parse(req.body);
 
     const record = await SectionService.addStory(

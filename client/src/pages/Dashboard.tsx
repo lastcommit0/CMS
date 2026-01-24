@@ -7,6 +7,11 @@ import { useRef } from "react"
 import { useStoryStats } from "@/hooks/useStories"
 import type { Stats } from "@/types/storyTypes"
 import StatCard from "@/components/StatsCard"
+import pending from "../assets/icons/pending.svg"
+import planned from "../assets/icons/planned.svg"
+import published from "../assets/icons/published.svg"
+import holdReject from "../assets/icons/reject.svg"
+
 
 interface NewsItem {
   id: string
@@ -62,19 +67,17 @@ export default function Dashboard() {
     }
   }
 
-  if (loading && newsData.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
-    )
-  }
+  // if (loading && newsData.length === 0) {
+  //   return (
+  //     <div className="flex items-center justify-center min-h-screen">
+  //       <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+  //     </div>
+  //   )
+  // }
 
   return (
-    <div className="ml-36 min-h-screen bg-white">
-  
-     {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 my-3 px-6">
+    <div className="w-full min-h-screen bg-white ml-36">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-4 bg-white">
         {/* Left title */}
         <h1 className="text-[18px] font-semibold text-[#243874]">
           Dashboard
@@ -202,7 +205,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Published */}
           <StatCard
-            icon="published"
+            icon={published}
             label="Published"
             value={stats?.published ?? 0}
             loading={statsLoading}
@@ -211,7 +214,7 @@ export default function Dashboard() {
 
           {/* Pending */}
           <StatCard
-            icon="pending"
+            icon={pending}
             label="Pending"
             value={stats?.pending ?? 0}
             loading={statsLoading}
@@ -220,7 +223,7 @@ export default function Dashboard() {
 
           {/* Planned */}
           <StatCard
-            icon="planned"
+            icon={planned}
             label="Planned"
             value={stats?.planned ?? 0}
             loading={statsLoading}
@@ -229,7 +232,7 @@ export default function Dashboard() {
 
           {/* Hold / Reject */}
           <StatCard
-            icon="reject"
+            icon={holdReject}
             label="Hold/Reject"
             value={stats?.holdReject ?? 0}
             loading={statsLoading}
@@ -239,7 +242,7 @@ export default function Dashboard() {
 
 
         {/* Data Table */}
-        <div className="w-full max-w-[1300px] rounded-md border border-gray-200 bg-white overflow-hidden">
+        <div className="w-full max-w-[1400px] rounded-md border border-gray-200 bg-white overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               {/* Header */}

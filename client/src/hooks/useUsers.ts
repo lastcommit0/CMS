@@ -2,12 +2,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   UserFilters,
-  UpdateUserData,
-  UpdateProfileData,
+  UserFormState,
 } from '@/types/userTypes';
 import { userApi } from '@/services/userService';
+import { toast } from 'sonner';
 
-/* ------------------ Query Keys ------------------ */
 
 const USER_KEYS = {
   all: ['users'] as const,
@@ -19,9 +18,8 @@ const USER_KEYS = {
     [...USER_KEYS.all, 'activity', id, page, limit] as const,
 };
 
-/* ------------------ Queries ------------------ */
 
-export const useUsers = (filters: UserFilters) =>
+export const useUsers = (filters: UserFilters = { page: 1, limit: 10 }) =>
   useQuery({
     queryKey: USER_KEYS.list(filters),
     queryFn: () =>
@@ -44,7 +42,7 @@ export const useUserStats = (id: string) =>
     queryFn: () =>
       userApi.getUserStats(id).then(res => res.data.data!),
     enabled: !!id,
-    staleTime: 2 * 60 * 1000, // matches old logic
+    staleTime: 2 * 60 * 1000,
   });
 
 export const useUserActivity = (id: string, page = 1, limit = 10) =>
@@ -55,18 +53,39 @@ export const useUserActivity = (id: string, page = 1, limit = 10) =>
     enabled: !!id,
   });
 
+export const fetchManagers = async (role: string) => {
+  const { data } = await userApi.getManager(role);
+  return data.data;
+};
+
+export const useManagers = (role: string) =>
+  useQuery({
+    queryKey: ["managers", role],
+    queryFn: () => fetchManagers(role),
+    enabled: Boolean(role),
+  });
+
+
+
+
 /* ------------------ Mutations ------------------ */
 
 export const useUpdateUser = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateUserData }) =>
+    mutationFn: ({ id, data }: { id: string; data: UserFormState }) =>
       userApi.updateUser(id, data).then(res => res.data.data!),
 
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: USER_KEYS.detail(id) });
       queryClient.invalidateQueries({ queryKey: USER_KEYS.lists() });
+      toast.success('User updated successfully');
+    },
+
+    onError: (error: any) => {
+      const message = error?.response?.data?.error?.message || 'Failed to update user';
+      toast.error(message);
     },
   });
 };
@@ -79,25 +98,28 @@ export const useDeleteUser = () => {
 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: USER_KEYS.all });
+      toast.success('User deleted successfully');
+    },
+
+    onError: (error: any) => {
+      const message = error?.response?.data?.error?.message || 'Failed to delete user';
+      toast.error(message);
     },
   });
 };
 
-export const useUpdateProfile = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateProfileData }) =>
-      userApi.updateProfile(id, data).then(res => res.data.data!),
-
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: USER_KEYS.detail(id) });
-    },
-  });
-};
 
 export const useChangePassword = () =>
   useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
       userApi.changePassword(id, data),
+
+    onSuccess: () => {
+      toast.success('Password changed successfully');
+    },
+
+    onError: (error: any) => {
+      const message = error?.response?.data?.error?.message || 'Failed to change password';
+      toast.error(message);
+    },
   });

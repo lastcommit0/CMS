@@ -26,7 +26,7 @@ export const SectionService = {
         skip,
         take: limit,
         include: { _count: { select: { stories: true } } },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { name: 'asc' }
       }),
       prisma.section.count({ where })
     ]);
@@ -46,7 +46,6 @@ export const SectionService = {
                 title: true,
                 slug: true,
                 status: true,
-                published: true
               }
             }
           },
@@ -254,7 +253,6 @@ export const SectionService = {
         isFeatured: true,
         story: {
           select: {
-            published: true,
             status: true
           }
         }
@@ -262,10 +260,11 @@ export const SectionService = {
     });
     const totalStories = stories.length;
     const featuredStories = stories.filter(s => s.isFeatured).length;
-    const publishedStories = stories.filter(s => s.story?.published).length;
+    const publishedStories = stories.filter(s => s.story?.status === 'PUBLISHED').length;
     const draftStories = stories.filter(s => s.story?.status === 'DRAFT').length;
 
 
     return { totalStories, featuredStories, publishedStories, draftStories };
-  }
+  },
+
 };

@@ -8,7 +8,7 @@ import pollRoute from "./pollRoute";
 import metaRoute from "./metaRoute";
 import priorityRoute from "./priorityRoute";
 import reportRoute from "./reportRoute";
-
+import searchRoute from "./searchRoute";
 
 const router = Router();
 
@@ -22,6 +22,7 @@ router.use('/poll', pollRoute);
 router.use('/meta', metaRoute);
 router.use('/priority', priorityRoute);
 router.use('/report', reportRoute);
+router.use('/', searchRoute);
 
 
 export default router;

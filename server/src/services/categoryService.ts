@@ -14,7 +14,7 @@ export class CategoryService {
           parent: { select: { id: true, name: true, slug: true } },
           _count: { select: { subcategories: true } }
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { name: 'asc' }
       }),
       prisma.category.count({ where: filters })
     ]);

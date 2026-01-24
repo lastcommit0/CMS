@@ -42,7 +42,7 @@ export class AuditService {
                             id: true,
                             name: true,
                             email: true,
-                            role: true
+                            roles: true
                         }
                     }
                 }
@@ -62,7 +62,7 @@ export class AuditService {
                         id: true,
                         name: true,
                         email: true,
-                        role: true
+                        roles: true
                     }
                 }
             }
@@ -86,7 +86,8 @@ export class AuditService {
                     select: {
                         id: true,
                         name: true,
-                        // identifier: true,
+                        email: true,
+                        roles: true
                     }
                 }
             }
@@ -95,48 +96,84 @@ export class AuditService {
     }
 
     static async fetchAuditStats(dateFrom: Date, dateTo: Date) {
-        const where: any = {};
-        const [totalLogs, byAction, byResource, topUsers] = await Promise.all([
-            prisma.auditLog.count({ where }),
+        const where = {
+            createdAt: {
+                gte: dateFrom,
+                lte: dateTo,
+            },
+        };
 
-            prisma.auditLog.groupBy({
-                by: ["action"],
-                _count: true,
-                where,
-                orderBy: { _count: { action: "desc" } },
-            }),
+        const [totalLogs, byAction, byResource, topUsers] =
+            await Promise.all([
+                prisma.auditLog.count({ where }),
 
-            prisma.auditLog.groupBy({
-                by: ["resource"],
-                _count: true,
-                where,
-                orderBy: { _count: { resource: "desc" } },
-            }),
-
-            prisma.user.findMany({
-                select: {
-                    id: true,
-                    name: true,
-                    email: true,
+                prisma.auditLog.groupBy({
+                    by: ["action"],
+                    where,
                     _count: {
-                        select: { activityLogs: { where } },
+                        _all: true,
                     },
-                },
-                orderBy: {
-                    activityLogs: { _count: "desc" },
-                },
-                take: 10,
-            }),
-        ]);
+                    orderBy: {
+                        _count: {
+                            id: "desc",
+                        },
+                    }
+
+                }),
+
+                prisma.auditLog.groupBy({
+                    by: ["resource"],
+                    where,
+                    _count: {
+                        _all: true,
+                    },
+                    orderBy: {
+                        _count: {
+                            id: "desc",
+                        },
+                    }
+                }),
+
+                prisma.user.findMany({
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        _count: {
+                            select: {
+                                auditLogs: true,
+                            },
+                        },
+                    },
+                    orderBy: {
+                        auditLogs: {
+                            _count: "desc",
+                        },
+                    },
+                    take: 10,
+                }),
+            ]);
 
         return {
             period: { from: dateFrom, to: dateTo },
             totalLogs,
-            byAction,
-            byResource,
-            topUsers,
+            byAction: byAction.map(a => ({
+                action: a.action,
+                count: a._count._all,
+            })),
+            byResource: byResource.map(r => ({
+                resource: r.resource,
+                count: r._count._all,
+            })),
+            topUsers: topUsers.map(u => ({
+                id: u.id,
+                name: u.name,
+                email: u.email,
+                totalActions: u._count.auditLogs,
+            })),
         };
     }
+
 
     static async logAudit({
         userId,

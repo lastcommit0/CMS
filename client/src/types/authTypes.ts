@@ -10,9 +10,10 @@ export interface RegisterData {
   email: string;
   phone: string;
   password: string;
-  role: 'ADMIN' | 'SUB_ADMIN' | 'EDITOR';
-  designation: 'EDITOR_IN_CHIEF' | 'MANAGING_EDITOR' | 'EDITOR' | 'WRITER' | 'CONTRIBUTOR';
-  jobType: 'FULL_TIME' | 'PART_TIME' | 'FREELANCE' | 'INTERN';
+  role: '' | 'ADMIN' | 'SUB_ADMIN' | 'EDITOR';
+  designation: '' | 'EDITOR_IN_CHIEF' | 'MANAGING_EDITOR' | 'EDITOR' | 'WRITER' | 'CONTRIBUTOR';
+  jobType: '' | 'FULL_TIME' | 'PART_TIME' | 'FREELANCE' | 'INTERN';
+  reportingManager: string;
   location?: string;
   bio: string;
 }
@@ -32,20 +33,8 @@ export interface UserProfile {
   avatar?: string;
 }
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  profile?: UserProfile;
-}
-
 export interface AuthResponse {
-  user: User;
+  user: RegisterData;
   accessToken: string;
   refreshToken: string;
 }

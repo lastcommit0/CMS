@@ -35,16 +35,6 @@ export const getUser = async (req: Request, res: Response, next: NextFunction) =
 export const updateUser = async (req: Request, res: Response, next: NextFunction) => {
     const data = updateUserSchema.parse(req.body);
     const updated = await UserService.updateUser(req.params.id, data);
-
-    await prisma.auditLog.create({
-      data: {
-        userId: req.user!.id,
-        action: "USER_UPDATED",
-        resource: "User",
-        metadata: { targetUserId: req.params.id, changes: req.body },
-        ipAddress: req.ip || "unknown"
-      }
-    });
     res.status(200).json({
         successs: true,
         data: updated
@@ -70,25 +60,6 @@ export const deleteUser = async (req: Request, res: Response, next: NextFunction
     })
 }
 
-
-export const updateUserProfile = async (req: Request, res: Response, next: NextFunction) => {
-    const data = updateProfileSchema.parse(req.body);
-    const profile = await UserService.updateUserProfile(req.user!.id, data  );
-
-    await prisma.auditLog.create({
-      data: {
-        userId: req.user!.id,
-        action: "USER_PROFILE_UPDATED",
-        resource: "User",
-        metadata: { changes: req.body },
-        ipAddress: req.ip || "unknown"
-      }
-    });
-    res.status(200).json({
-        successs: true,
-        data: profile
-    })
-}
 
 
 export const changePassword = async (req: Request, res: Response, next: NextFunction) => {
@@ -133,5 +104,15 @@ export const getUserActivity = async (req: Request, res: Response, next: NextFun
     res.status(200).json({
         successs: true,
         data: activity
+    })
+}
+
+
+export const getManager = async (req: Request, res: Response, next: NextFunction) => {
+    const role = req.params.role;
+    const managers = await UserService.getManager(role);
+    res.status(200).json({
+        successs: true,
+        data: managers
     })
 }

@@ -68,10 +68,8 @@ export default function Sidebar() {
 
   return (
     <div className="fixed top-0 flex min-h-screen">
-      {/* MAIN SIDEBAR */}
-      <aside className="w-36 h-screen bg-[#1c1c1f] text-white flex flex-col items-center py-6">
+      <aside className="w-[142px] h-screen bg-[#1c1c1f] text-white flex flex-col items-center py-6">
         <div className="flex flex-col items-center gap-6 w-full">
-          {/* LOGO */}
           <div className="flex items-center gap-2">
             <img src={logo} className="w-11" />
             <h3 className="font-logo text-xs uppercase font-semibold leading-none">
@@ -81,7 +79,6 @@ export default function Sidebar() {
             </h3>
           </div>
 
-          {/* MENU */}
           <div className="flex flex-col gap-2 w-full px-2">
             {menuItems.map(item => (
               <NavLink
@@ -99,7 +96,6 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* FOOTER */}
         <div className="mt-auto flex flex-col items-center gap-2">
           <div className="w-9 h-9 rounded-full bg-yellow-500 flex items-center justify-center font-bold text-black text-xs">
             SB
@@ -107,24 +103,23 @@ export default function Sidebar() {
           <span className="text-[10px] text-gray-400">Logout</span>
         </div>
       </aside>
-        <div className="bg-black">
-      {/* SUBMENU */}
-      {activeMenu?.subItems && (
-        <aside className="w-56 bg-[#1c1c1f] border-r border-gray-700/30 pt-4">
-          {activeMenu.subItems.map(sub => (
-            <NavLink
-              key={sub.path}
-              to={`${activeMenu.path}/${sub.path}`}
-              className={({ isActive }) =>
-                `block px-4 py-2 text-sm rounded-md mx-2 mb-1 transition
+      <div className="bg-black">
+        {activeMenu?.subItems && (
+          <aside className="w-[240px] h-full bg-[#1c1c1f] border-r border-gray-700/30 pt-4">
+            {activeMenu.subItems.map(sub => (
+              <NavLink
+                key={sub.path}
+                to={`${activeMenu.path}/${sub.path}`}
+                className={({ isActive }) =>
+                  `block px-4 py-2 text-sm rounded-md mx-2 mb-1 transition
                 ${isActive ? "bg-[#242428] text-white" : "text-gray-300 hover:bg-[#313338]/60"}`
-              }
-            >
-              {sub.label}
-            </NavLink>
-          ))}
-        </aside>
-      )}
+                }
+              >
+                {sub.label}
+              </NavLink>
+            ))}
+          </aside>
+        )}
       </div>
     </div>
   );

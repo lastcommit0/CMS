@@ -23,7 +23,7 @@ export default function StatCard({
   return (
     <div className="h-20 bg-white border border-gray-200 rounded-lg shadow-sm flex items-center">
       <div className={`w-20 h-full ${bgMap[bg]} rounded-l-lg flex items-center justify-center`}>
-        <img src={`/icons/${icon}.svg`} className="w-8 h-8" />
+        <img src={icon} className="w-8 h-8" />
       </div>
 
       <div className="px-4">

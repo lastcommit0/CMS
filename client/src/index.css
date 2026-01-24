@@ -238,3 +238,12 @@
     font-family: var(--font-logo);
   }
 }
+
+@layer components {
+  .custom-label {
+    @apply block mb-1 text-[14px] text-[#525252] font-medium;
+  }
+  .custom-input {
+    @apply w-full bg-gray-100 border-b border-gray-300 p-2 text-sm outline-none focus:border-blue-500 transition-colors
+  }
+}

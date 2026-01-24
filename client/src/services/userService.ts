@@ -1,46 +1,43 @@
+// client/src/services/userService.ts
 import apiClient, { type ApiResponse } from "@/lib/api/axiosClient";
 import type {
   UserFilters,
-  UpdateUserData,
-  UpdateProfileData,
   ChangePasswordData,
   UserStats,
+  UserFormState,
 } from "@/types/userTypes";
-import { BASE_URL } from "@/lib/config";
-import type { UserProfile } from "@/types/authTypes";
-import type {User} from "@/types/authTypes";
 
-
+const BASE_URL = "/user";
 
 export const userApi = {
   getUsers: (filters: UserFilters) =>
-    apiClient.get<ApiResponse<{ users: User[]; pagination: any }>>(`${BASE_URL}`, {
-      params: filters,
-    }),
-
-  getUserById: (id: string) =>
-    apiClient.get<ApiResponse<User>>(`${BASE_URL}/${id}`),
-
-  updateUser: (id: string, data: UpdateUserData) =>
-    apiClient.put<ApiResponse<User>>(`${BASE_URL}/${id}`, data),
-
-  deleteUser: (id: string) =>
-    apiClient.delete(`${BASE_URL}/${id}`),
-
-  updateProfile: (id: string, data: UpdateProfileData) =>
-    apiClient.post<ApiResponse<UserProfile>>(
-      `${BASE_URL}/${id}/profile`,
-      data
+    apiClient.get<ApiResponse<{ users: UserFormState[]; pagination: any }>>(
+      `${BASE_URL}/users`,
+      { params: filters }
     ),
 
+  getUserById: (id: string) =>
+    apiClient.get<ApiResponse<UserFormState>>(`${BASE_URL}/user/${id}`),
+
+  updateUser: (id: string, data: UserFormState) =>
+    apiClient.put<ApiResponse<UserFormState>>(`${BASE_URL}/user/${id}`, data),
+
+  deleteUser: (id: string) =>
+    apiClient.delete(`${BASE_URL}/user/${id}`),
+
   changePassword: (id: string, data: ChangePasswordData) =>
-    apiClient.post(`${BASE_URL}/${id}/password`, data),
+    apiClient.post(`${BASE_URL}/user/${id}/password`, data),
 
   getUserStats: (id: string) =>
-    apiClient.get<ApiResponse<UserStats>>(`${BASE_URL}/${id}/stats`),
+    apiClient.get<ApiResponse<UserStats>>(`${BASE_URL}/user/${id}/stats`),
 
   getUserActivity: (id: string, page = 1, limit = 10) =>
-    apiClient.get<ApiResponse<any>>(`${BASE_URL}/${id}/activity`, {
+    apiClient.get<ApiResponse<any>>(`${BASE_URL}/user/${id}/activity`, {
       params: { page, limit },
     }),
+
+  getManager: (role: string) => 
+    apiClient.get<ApiResponse<any[]>>(`${BASE_URL}/manager/${role}`)
+
+  
 };

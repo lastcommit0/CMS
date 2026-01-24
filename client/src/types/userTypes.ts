@@ -6,23 +6,6 @@ export interface UserFilters {
   status?: string;
 }
 
-export interface UpdateUserData {
-  name?: string;
-  email?: string;
-  phone?: string;
-  role?: 'ADMIN' | 'SUB_ADMIN' | 'EDITOR';
-  status?: 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
-  managerId?: string;
-}
-
-export interface UpdateProfileData {
-  designation?: string;
-  jobType?: string;
-  location?: string;
-  bio?: string;
-  avatar?: string;
-}
-
 export interface ChangePasswordData {
   currentPassword: string;
   newPassword: string;
@@ -40,32 +23,20 @@ export interface UserStats {
 
 
 export interface UserFormState {
-  basicInfo: BasicUserInfo
-  professionalInfo: ProfessionalUserInfo
-}
-
-
-
-export interface BasicUserInfo {
+  id: string
   firstName: string
   lastName: string
   email: string
-  whatsAppNo: string
+  phone: string
   password: string
   location?: string
-  profileSummary: string
+  bio: string
+  role: UserRole | ''
+  designation: Designation | ''
+  jobType: JobType | ''
+  managerId?: string
   avatar?: string
 }
-
-
-export interface ProfessionalUserInfo {
-  role: UserRole
-  designation: Designation
-  jobType: JobType
-  status: UserStatus
-  managerId?: string
-}
-
 
 
 export const UserRole = {
@@ -76,11 +47,14 @@ export const UserRole = {
 export type UserRole = typeof UserRole[keyof typeof UserRole];
 
 export const Designation = {
-  EDITOR_IN_CHIEF : "EDITOR_IN_CHIEF",
-  MANAGING_EDITOR : "MANAGING_EDITOR",
-  EDITOR : "EDITOR",
-  WRITER : "WRITER",
-  CONTRIBUTOR : "CONTRIBUTOR",
+  OPERATIONS_MANAGER: "OPERATIONS_MANAGER",
+  COMMUNITY_MODERATOR: "COMMUNITY_MODERATOR",
+  COMPLIANCE_OFFICER: "COMPLIANCE_OFFICER",
+  EDITOR_IN_CHIEF: "EDITOR_IN_CHIEF",
+  MANAGING_EDITOR: "MANAGING_EDITOR",
+  SENIOR_EDITOR: "SENIOR_EDITOR",
+  COPY_EDITOR: "COPY_EDITOR",
+  SEO_EDITOR: "SEO_EDITOR",
 } as const;
 export type Designation = typeof Designation[keyof typeof Designation];
 

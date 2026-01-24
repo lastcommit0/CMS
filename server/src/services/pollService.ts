@@ -5,14 +5,31 @@ import { ErrorCode } from '../errors/errorCode';
 
 export class PollService {
 
-    static async list(filters: any, pagination: {skip: number, take: number}) {
+    static async list(
+        filters: {
+            status?: "INACTIVE" | "ACTIVE" | "EXPIRED", 
+            storyId?: string}, 
+        pagination: { skip: number, take: number }) {
+        const where: any = {};
+        if(filters.status){
+            where.status = filters.status;
+        }
+        if(filters.storyId){
+            where.storyId = filters.storyId;
+        }
         const [polls, total] = await Promise.all([
             prisma.poll.findMany({
-                where: filters,
+                where,
                 skip: pagination.skip,
                 take: pagination.take,
                 include: {
-                    creator: { select: { id: true, name: true, email: true } },
+                    creator: { 
+                        select: { 
+                            id: true, 
+                            name: true, 
+                            email: true 
+                        } 
+                    },
                     options: {
                         include: {
                             _count: {
@@ -22,18 +39,22 @@ export class PollService {
                             }
                         }
                     },
-                    votes: { include: { user: true } }
+                    _count: {
+                        select: {
+                            votes: true
+                        }
+                    }
                 },
-                orderBy: { createdAt: 'desc' }
+                orderBy: { startsAt: 'desc' }
             }),
             prisma.poll.count({
-                where: filters
+                where
             })
         ]);
         return { polls, total };
     }
 
-    static async getById(id: string){
+    static async getById(id: string) {
         const poll = await prisma.poll.findUnique({
             where: {
                 id
@@ -62,19 +83,35 @@ export class PollService {
                 }
             }
         });
-        if(!poll){
+        if (!poll) {
             throw new CustomError(ErrorCode.POLL_NOT_FOUND);
         }
         return poll;
     }
 
-    static async create(data: any, creatorId: string){
+    static async create(data: any, creatorId: string) {
+        if (!data.question || !data.endsAt || !Array.isArray(data.options) || data.options.length < 2) {
+            throw new Error("Invalid poll data");
+        }
+        const startDate = data.startsAt ? new Date(data.startsAt) : new Date();
+        const endDate = new Date(data.endsAt);
+        if(endDate <= startDate) {
+            throw new CustomError(ErrorCode.POLL_EXPIRED);
+        }
+        let status: "INACTIVE" | "ACTIVE" | "EXPIRED" = "INACTIVE";
+        const now = new Date();
+        if(now >= startDate && now < endDate){
+            status = "ACTIVE";
+        }else if(now >= endDate){
+            status = "EXPIRED";
+        }
         return prisma.poll.create({
             data: {
                 question: data.question,
-                storyId: data.storyId,
-                status: data.status,
-                expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
+                storyId: data.storyId ?? null,
+                startsAt: startDate,
+                endsAt: endDate,
+                status,
                 createdBy: creatorId,
                 options: {
                     create: data.options.map((option: any) => ({
@@ -88,7 +125,7 @@ export class PollService {
         });
     }
 
-    static async update(id: string, data: any){
+    static async update(id: string, data: any) {
         return prisma.poll.update({
             where: {
                 id
@@ -103,7 +140,7 @@ export class PollService {
         });
     }
 
-    static async delete(id: string){
+    static async delete(id: string) {
         return prisma.poll.delete({
             where: {
                 id
@@ -111,7 +148,7 @@ export class PollService {
         });
     }
 
-    static async addOption(pollId: string, data: any){
+    static async addOption(pollId: string, data: any) {
         return prisma.pollOption.create({
             data: {
                 pollId,
@@ -120,25 +157,25 @@ export class PollService {
         });
     }
 
-    static async updateOption(pollId: string, optionId: string, text: string){
+    static async updateOption(pollId: string, optionId: string, text: string) {
         return prisma.pollOption.update({
             where: {
                 id: optionId,
                 pollId
             },
-            data:  {
+            data: {
                 text
             }
         });
     }
 
-    static async deleteOption(pollId: string, optionId: string){
+    static async deleteOption(pollId: string, optionId: string) {
         const count = await prisma.pollOption.count({
             where: {
-                id: optionId    
+                id: optionId
             }
         });
-        if(count <= 2){
+        if (count <= 2) {
             throw new CustomError(ErrorCode.POLL_MIN_OPTIONS);
         }
         return prisma.pollOption.deleteMany({
@@ -149,7 +186,7 @@ export class PollService {
         });
     }
 
-    static async vote(pollId: string, optionId: string, userId?: string, ip?: string){
+    static async vote(pollId: string, optionId: string, userId?: string, ip?: string) {
         const poll = await prisma.poll.findUnique({
             where: {
                 id: pollId
@@ -158,25 +195,25 @@ export class PollService {
                 options: true
             }
         });
-        if(!poll){
+        if (!poll) {
             throw new CustomError(ErrorCode.POLL_NOT_FOUND);
         }
-        if(poll.status !== 'ACTIVE'){
+        if (poll.status !== 'ACTIVE') {
             throw new CustomError(ErrorCode.POLL_CLOSED);
         }
-        if(poll.expiresAt && poll.expiresAt < new Date()){
+        if (poll.endsAt && poll.endsAt < new Date()) {
             throw new CustomError(ErrorCode.POLL_EXPIRED);
         }
         const existingVote = await prisma.pollVote.findFirst({
             where: {
                 pollId,
                 OR: [
-                    ...(userId ? [{userId}] : []),
-                    {ipAddress: ip || '' }
+                    ...(userId ? [{ userId }] : []),
+                    { ipAddress: ip || '' }
                 ]
             }
         });
-        if(existingVote){
+        if (existingVote) {
             throw new CustomError(ErrorCode.POLL_DUPLICATE_VOTE);
         }
         await prisma.pollVote.create({
@@ -190,7 +227,7 @@ export class PollService {
         return this.getById(pollId);
     }
 
-    static async getResults(pollId: string){
+    static async getResults(pollId: string) {
         const poll = await prisma.poll.findUnique({
             where: {
                 id: pollId
@@ -212,7 +249,7 @@ export class PollService {
                 }
             }
         });
-        if(!poll){
+        if (!poll) {
             throw new CustomError(ErrorCode.POLL_NOT_FOUND);
         }
         const totalVotes = poll._count.votes;
@@ -231,10 +268,10 @@ export class PollService {
     }
 
 
-    static async expirePolls(){
+    static async expirePolls() {
         return prisma.poll.updateMany({
             where: {
-                expiresAt: { lt: new Date()}, 
+                endsAt: { lt: new Date() },
                 status: 'ACTIVE'
             },
             data: {

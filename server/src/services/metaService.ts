@@ -47,11 +47,11 @@ export class MetaService {
   static async bulkGenerate(storyIds: string[], userId: string, ip: string) {
     const stories = await prisma.story.findMany({
       where: { id: { in: storyIds } },
-      include: { metaTags: true }
+      include: { meta: true }
     });
 
     const payload = stories
-      .filter(s => !s.metaTags)
+      .filter(s => !s.meta)
       .map(s => ({
         storyId: s.id,
         metaDescription: s.excerpt,

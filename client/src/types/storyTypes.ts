@@ -1,27 +1,3 @@
-
-export interface Story {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string;
-  content: any;
-  storyType: 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'SCHEDULED';
-  status: 'NEWS' | 'MAGAZINE' | 'BLOG' | 'VIDEO' | 'PDF';
-  priority: number;
-  published: boolean;
-  scheduleAt?: string;
-  createdAt: string;
-  updatedAt: string;
-  author: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  sections?: any[];
-  assets?: StoryAsset[];
-  metaTags?: MetaTag;
-}
-
 export interface StoryAsset {
   id: string;
   type: 'IMAGE' | 'VIDEO' | 'PDF' | 'AUDIO' | 'DOCUMENT';
@@ -29,69 +5,76 @@ export interface StoryAsset {
   metadata?: any;
 }
 
-export interface MetaTag {
-  metaKeywords?: string;
-  metaDescription: string;
-  ogTitle?: string;
-  ogDescription?: string;
-  ogImage?: string;
-}
-
-export interface CreateStoryData {
-  title: string;
-  slug: string;
-  excerpt: string;
-  content: any;
-  storyType: Story['storyType'];
-  status: Story['status'];
-  priority?: number;
-  scheduleAt?: string;
-  sectionIds?: string[];
-  metaTags?: MetaTag;
-}
-
-export interface viewStoryData {
-  id: string;
-  title: string;
-  Author: string;
-  ApprovedBy: string;
-  status: string;
-}
-
-export interface EditorContent {
-  blocks: Array<
-    | { type: 'paragraph'; text: string }
-    | { type: 'heading'; level: number; text: string }
-    | { type: 'image'; assetId: string }
-    | { type: 'video'; assetId: string }
-    | { type: 'pdf'; assetId: string }
-  >;
-}
-
-
 export interface StoryAssetRef {
   assetId: string;
-  type: 'IMAGE' | 'VIDEO' | 'PDF';
-  fileUrl: string;
+  caption?: string;
+  credit?: string;
 }
 
+export type InlineMark =
+  | { type: 'bold'; start: number; end: number }
+  | { type: 'italic'; start: number; end: number }
+  | { type: 'underline'; start: number; end: number }
+  | { type: 'link'; start: number; end: number; href: string };
+
+export type StoryBlock =
+  | {
+      id: string;
+      type: 'paragraph';
+      data: {
+        text: string;
+        marks?: InlineMark[];
+      };
+    }
+  | {
+      id: string;
+      type: 'heading';
+      data: {
+        level: 1 | 2 | 3 | 4 | 5 | 6;
+        text: string;
+      };
+    }
+  | {
+      id: string;
+      type: 'image';
+      data: {
+        assetId: string;
+        caption?: string;
+      };
+    }
+  | {
+      id: string;
+      type: 'video';
+      data: {
+        assetId: string;
+      };
+    }
+  | {
+      id: string;
+      type: 'pdf';
+      data: {
+        assetId: string;
+      };
+    };
+
+export interface EditorContent {
+  version: '1.0';
+  time?: number;
+  blocks: StoryBlock[];
+}
 
 export interface StoryFormState {
-  id?: string;                
   type: 'STORY' | 'LIVE_BLOG';
-  status: 'DRAFT' | 'REVIEW' | 'PUBLISHED';
-
   storyUrl: string;
   shortTitle: string;
   articleTitle: string;
   slugIntro: string;
 
-  description: string;  
-  content: EditorContent;     
-  highlights: string;
+  description: EditorContent;
+  highlights: EditorContent;
 
-  topicTags: string[];      
-  
+  topicTags: string[];
+
   seo: {
     metaKeywords: string;
     metaDescription: string;
@@ -99,43 +82,101 @@ export interface StoryFormState {
     excludeIA: boolean;
   };
 
-  coverImage?: StoryAssetRef;
-  pdfAttachment?: StoryAssetRef;
-
-  author: string;
-  place?: string;
   district?: string;
   mandal: string;
 
+  coverImage?: StoryAssetRef;
+  pdfAttachment?: StoryAssetRef;
   photoCaption?: string;
   photoCredit?: string;
+
+  author: string;
+  place?: string;
+
+  enablePaywall: boolean;
+  schedulePost: boolean;
+  scheduleAt?: string; 
+}
+
+export interface Story {
+  id: string;
+  type: 'STORY' | 'LIVE_BLOG';
+  status: 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'SCHEDULED';
+
+  storyUrl: string;
+  shortTitle: string;
+  articleTitle: string;
+  slugIntro: string;
+
+  description: EditorContent;
+  highlights: EditorContent;
+
+  topicTags: string[];
+
+  seo: {
+    metaKeywords: string;
+    metaDescription: string;
+    googleBot: 'ALLOW' | 'DISALLOW';
+    excludeIA: boolean;
+  };
+
+  district?: string;
+  mandal: string;
+
+  coverImage?: StoryAssetRef;
+  pdfAttachment?: StoryAssetRef;
+  photoCaption?: string;
+  photoCredit?: string;
+
+  author: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  place?: string;
 
   enablePaywall: boolean;
   schedulePost: boolean;
   scheduleAt?: string;
+
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string;
+
+  assets?: StoryAsset[];
 }
 
+export interface CreateStoryRequest extends StoryFormState {}
 
+export interface UpdateStoryRequest extends Partial<StoryFormState> {
+  id: string;
+}
 
 export interface StoryFilters {
   page?: number;
   limit?: number;
   search?: string;
-  storyType?: string;
-  status?: string;
-  published?: boolean;
+  type?: 'STORY' | 'LIVE_BLOG';
+  status?: 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'SCHEDULED';
   authorId?: string;
+  district?: string;
+  mandal?: string;
+  tags?: string[];
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export interface PaginatedResponse<T> {
-  stories: T[];
+  data: T[];
   total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
-
-export interface Stats {
+export interface StoryStats {
+  draft: number;
+  review: number;
   published: number;
-  pending: number;
-  planned: number;
-  holdReject: number;
+  scheduled: number;
 }

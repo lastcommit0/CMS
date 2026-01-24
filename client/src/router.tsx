@@ -18,6 +18,8 @@ import UserAccessManagement from "./pages/UserManagement/UserAccessManagement"
 import AdminUserList from "./pages/UserManagement/AdminUserList"
 import Users from "./pages/UserManagement/Users"
 import LoginLayout from "./auth/pages/LoginLayout"
+import { VideoList } from "./pages/StoryManagement/VideoList"
+import {ContactList} from "./pages/StoryManagement/ContactList"
 
 
 export const router = createBrowserRouter([
@@ -78,11 +80,11 @@ export const router = createBrowserRouter([
           },
           { 
             path: 'video-list',
-            element: <div>Video List</div> 
+            element: <VideoList/> 
           },
           {
             path: 'contact-list',
-            element: <div>Contact List</div>
+            element: <ContactList />
           }
         ]
       },

@@ -7,7 +7,20 @@ export class PriorityService {
     return prisma.storySection.findMany({
       where: sectionId ? { sectionId } : {},
       include: {
-        story: { select: { id: true, title: true, slug: true, status: true } },
+        story: { 
+          select: { 
+            id: true, 
+            title: true, 
+            slug: true, 
+            status: true,
+            author: {
+              select: {
+                id: true,
+                name: true,
+              }
+            } 
+          }
+        },
         section: { select: { id: true, name: true, slug: true } }
       },
       orderBy: { priority: 'desc' }
@@ -77,6 +90,8 @@ export class PriorityService {
         ipAddress: ip
       }
     });
+
+    
   }
 
   static async getLogs(page: number, limit: number, filters: any) {

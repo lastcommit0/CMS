@@ -2,6 +2,7 @@ import prisma from "../db";
 import CustomError from "../errors/customError";
 import argon2 from "argon2";
 import { ErrorCode } from "../errors/errorCode";
+import { getManagerId } from "../utils/managerId";
 
 
 export class UserService {
@@ -75,9 +76,14 @@ export class UserService {
         return sanitized;
     }
 
-    static async updateUser(userId: string, data: any) {
+    static async updateUser(
+        userId: string,
+        data: any,
+        updatedById?: string,
+        ipAddress?: string
+    ) {
         if (data.email || data.phone) {
-            const existing = await prisma.user.findFirst({
+            const exist = await prisma.user.findFirst({
                 where: {
                     id: { not: userId },
                     OR: [
@@ -87,18 +93,59 @@ export class UserService {
                 }
             });
 
-            if (existing) {
-                throw new CustomError(ErrorCode.USER_EMAIL_EXISTS);
+            if (exist) {
+                throw new CustomError(ErrorCode.USER_ALREADY_EXISTS);
             }
+        }
+
+        let passwordHash: string | undefined;
+        if (data.password) {
+            passwordHash = await argon2.hash(data.password);
         }
 
         const user = await prisma.user.update({
             where: { id: userId },
-            data,
+            data: {
+                name: data.name,
+                email: data.email,
+                phone: data.phone,
+                roles: data.role,
+                ...(passwordHash && { passwordHash }),
+
+                profile: {
+                    upsert: {
+                        update: {
+                            designation: data.designation,
+                            jobType: data.jobType,
+                            location: data.location,
+                            bio: data.bio,
+                        },
+                        create: {
+                            designation: data.designation || "WRITER",
+                            jobType: data.jobType || "FULL_TIME",
+                            location: data.location,
+                            bio: data.bio,
+                        }
+                    }
+                }
+            },
             include: { profile: true }
         });
 
-        const { passwordHash, ...sanitized } = user;
+        await prisma.auditLog.create({
+            data: {
+                userId,
+                action: "USER_UPDATED",
+                resource: "USER",
+                metadata: {
+                    userId,
+                    email: user.email
+                },
+                ipAddress: ipAddress || "unknown",
+            }
+        });
+
+        const { passwordHash: _, ...sanitized } = user;
         return sanitized;
     }
 
@@ -110,24 +157,7 @@ export class UserService {
         await prisma.user.delete({ where: { id: targetUserId } });
     }
 
-    static async updateUserProfile(userId: string, data: any) {
-        return prisma.userProfile.upsert({
-            where: { userId },
-            update: data,
-            create: {
-                userId,
-                designation: data.designation || "WRITER",
-                jobType: data.jobType || "FULL_TIME",
-                ...data
-            }
-        });
-    }
-
-    static async changePassword(
-        userId: string,
-        currentPassword: string,
-        newPassword: string
-    ) {
+    static async changePassword(userId: string, currentPassword: string, newPassword: string) {
         const user = await prisma.user.findUnique({ where: { id: userId } });
 
         if (!user || !user.passwordHash) {
@@ -163,7 +193,7 @@ export class UserService {
             reportsCount
         ] = await Promise.all([
             prisma.story.count({ where: { authorId: userId } }),
-            prisma.story.count({ where: { authorId: userId, published: true } }),
+            prisma.story.count({ where: { authorId: userId, status: "PUBLISHED" } }),
             prisma.story.count({ where: { authorId: userId, status: "DRAFT" } }),
             prisma.poll.count({ where: { createdBy: userId } }),
             prisma.poll.count({ where: { createdBy: userId, status: "ACTIVE" } }),
@@ -178,7 +208,6 @@ export class UserService {
                 id: true,
                 title: true,
                 slug: true,
-                published: true,
                 status: true,
                 storyType: true,
                 publishedAt: true
@@ -218,5 +247,22 @@ export class UserService {
                 totalPage: Math.ceil(total / limit)
             }
         };
+    }
+
+    static async getManager(role: string) {
+        let allowedManagerIds = getManagerId(role);
+        if (allowedManagerIds.length === 0) return [];
+
+        const managers = await prisma.user.findMany({
+            where: {
+                id: { in: allowedManagerIds }
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true
+            }
+        });
+        return managers;
     }
 }
