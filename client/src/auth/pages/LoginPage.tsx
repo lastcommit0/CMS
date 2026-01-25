@@ -1,9 +1,7 @@
 import type React from "react"
 import logo from "@/assets/icons/logo.svg"
-
 import bgimg from "@/assets/icons/bgimg.svg";
 import bgimg2 from "@/assets/icons/bgimg2.svg";
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"

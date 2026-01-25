@@ -15,13 +15,16 @@ interface OAuthPayload {
 
 export const AuthService = {
 
-  async handleOAuthLogin(payload: OAuthPayload, req: any) {
-    const { provider, providerAccountId, email } = payload;
-
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: {
-        roles: { include: { role: true } },
+  async identifyUser(identifier: string) {
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [{ email: identifier }, { phone: identifier }],
+      },
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        failedLoginAttempts: true,
       },
     });
 
@@ -29,28 +32,69 @@ export const AuthService = {
       throw new CustomError(ErrorCode.USER_NOT_FOUND);
     }
 
+    const requireCaptcha = user.failedLoginAttempts >= 2;
+
+    return {
+      userId: user.id,
+      username: user.email,
+      requireCaptcha,
+    };
+  },
+
+  async handleOAuthLogin(payload: OAuthPayload, req: any) {
+    const { provider, providerAccountId, email, name, avatar } = payload;
+
+    let user = await prisma.user.findUnique({
+      where: { email },
+      include: {
+        roles: { include: { role: true } },
+      },
+    });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email,
+          name,
+          authProvider: provider === "GOOGLE" ? "GOOGLE" : "LOCAL",
+          status: "ACTIVE",
+          profile: {
+            create: {
+              designation: "WRITER",
+              jobType: "FULL_TIME",
+              avatar,
+            },
+          },
+        },
+        include: {
+          roles: { include: { role: true } },
+        },
+      });
+    }
+
     if (user.status !== "ACTIVE") {
       throw new CustomError(ErrorCode.AUTH_ACCOUNT_DISABLED);
     }
 
-    const existingOAuth = await prisma.oAuthAccount.findUnique({
+    // Create or update OAuth account
+    await prisma.oAuthAccount.upsert({
       where: {
         provider_providerAccountId: { provider, providerAccountId },
       },
+      create: {
+        userId: user.id,
+        provider,
+        providerAccountId,
+      },
+      update: {},
     });
 
-    if (!existingOAuth) {
-      await prisma.oAuthAccount.create({
-        data: { userId: user.id, provider, providerAccountId },
-      });
-    }
-
-    const roles = user.roles.map(r => r.role.name);
+    const roles = user.roles.map((r) => r.role.name);
 
     const accessToken = jwt.sign(
       { userId: user.id, roles },
       process.env.JWT_SECRET!,
-      { expiresIn: "30m" }
+      { expiresIn: "24h" }
     );
 
     const refreshToken = jwt.sign(
@@ -59,6 +103,7 @@ export const AuthService = {
       { expiresIn: "7d" }
     );
 
+    // Create session
     await prisma.session.create({
       data: {
         userId: user.id,
@@ -74,6 +119,10 @@ export const AuthService = {
     };
   },
 
+
+  // server/src/services/authService.ts - registerUser function update
+  // Replace the registerUser function with this improved version
+
   async registerUser(
     context: {
       userId: string;
@@ -84,7 +133,7 @@ export const AuthService = {
   ) {
     const allowedRoles = ["ADMIN", "SUB_ADMIN"];
 
-    const hasAccess = context.userRole.some(role =>
+    const hasAccess = context.userRole.some((role) =>
       allowedRoles.includes(role)
     );
 
@@ -92,37 +141,63 @@ export const AuthService = {
       throw new CustomError(ErrorCode.ROLE_ACCESS_DENIED);
     }
 
-
     const exist = await prisma.user.findFirst({
       where: {
-        OR: [{ email: data.email }, { phone: data.phone }],
+        OR: [{ email: data.email }, ...(data.phone ? [{ phone: data.phone }] : [])],
       },
     });
 
     if (exist) {
-      throw new CustomError(ErrorCode.USER_ALREADY_EXISTS);
+      if (exist.email === data.email) {
+        throw new CustomError(ErrorCode.USER_EMAIL_EXISTS);
+      }
+      if (exist.phone === data.phone) {
+        throw new CustomError(ErrorCode.USER_PHONE_EXISTS);
+      }
     }
 
     const passwordHash = await argon2.hash(data.password);
 
+    const role = await prisma.roleModel.upsert({
+      where: { name: data.role },
+      create: {
+        name: data.role,
+        description: `${data.role} role`,
+      },
+      update: {},
+    });
+
     const user = await prisma.user.create({
       data: {
-        name: data.name,
+        name: `${data.firstName} ${data.lastName}`,
         email: data.email,
         phone: data.phone,
         passwordHash,
-        roles: data.role,
         createdById: context.userId,
+        managerId: data.managerId || null,
         profile: {
           create: {
             designation: data.designation,
             jobType: data.jobType,
             location: data.location,
             bio: data.bio,
+            avatar: data.avatar,
+          },
+        },
+        roles: {
+          create: {
+            roleId: role.id,
           },
         },
       },
-      include: { profile: true },
+      include: {
+        profile: true,
+        roles: {
+          include: {
+            role: true,
+          },
+        },
+      },
     });
 
     await prisma.auditLog.create({
@@ -133,6 +208,7 @@ export const AuthService = {
         metadata: {
           createdUserId: user.id,
           email: user.email,
+          role: data.role,
         },
         ipAddress: context.ip || "unknown",
       },

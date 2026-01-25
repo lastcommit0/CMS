@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
 import CustomError from "../errors/customError";
-import config from "../config";
+import config from "../config/config";
 import { getErrorMessage } from "../utils/getErrorMessage";
 
 export default function errorHandler(

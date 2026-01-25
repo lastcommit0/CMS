@@ -4,7 +4,6 @@ import argon2 from "argon2";
 import { ErrorCode } from "../errors/errorCode";
 import { getManagerId } from "../utils/managerId";
 
-
 export class UserService {
     static async getUsers(params: {
         page: number;
@@ -26,7 +25,6 @@ export class UserService {
             ];
         }
 
-        if (role) where.role = role;
         if (status) where.status = status;
 
         const [users, total] = await Promise.all([
@@ -36,6 +34,11 @@ export class UserService {
                 take: limit,
                 include: {
                     profile: true,
+                    roles: {
+                        include: {
+                            role: true
+                        }
+                    },
                     manager: { select: { id: true, name: true, email: true } },
                     _count: { select: { stories: true, subordinates: true } }
                 },
@@ -62,6 +65,11 @@ export class UserService {
             where: { id },
             include: {
                 profile: true,
+                roles: {
+                    include: {
+                        role: true
+                    }
+                },
                 manager: { select: { id: true, name: true, email: true } },
                 subordinates: { select: { id: true, name: true, email: true } },
                 _count: { select: { stories: true, polls: true, reports: true } }
@@ -82,6 +90,7 @@ export class UserService {
         updatedById?: string,
         ipAddress?: string
     ) {
+        // Check if email or phone already exists
         if (data.email || data.phone) {
             const exist = await prisma.user.findFirst({
                 where: {
@@ -94,7 +103,12 @@ export class UserService {
             });
 
             if (exist) {
-                throw new CustomError(ErrorCode.USER_ALREADY_EXISTS);
+                if (exist.email === data.email) {
+                    throw new CustomError(ErrorCode.USER_EMAIL_EXISTS);
+                }
+                if (exist.phone === data.phone) {
+                    throw new CustomError(ErrorCode.USER_PHONE_EXISTS);
+                }
             }
         }
 
@@ -109,7 +123,7 @@ export class UserService {
                 name: data.name,
                 email: data.email,
                 phone: data.phone,
-                roles: data.role,
+                managerId: data.managerId || null,
                 ...(passwordHash && { passwordHash }),
 
                 profile: {
@@ -119,31 +133,42 @@ export class UserService {
                             jobType: data.jobType,
                             location: data.location,
                             bio: data.bio,
+                            avatar: data.avatar,
                         },
                         create: {
-                            designation: data.designation || "WRITER",
+                            designation: data.designation || "COPY_EDITOR",
                             jobType: data.jobType || "FULL_TIME",
                             location: data.location,
                             bio: data.bio,
+                            avatar: data.avatar,
                         }
                     }
                 }
             },
-            include: { profile: true }
-        });
-
-        await prisma.auditLog.create({
-            data: {
-                userId,
-                action: "USER_UPDATED",
-                resource: "USER",
-                metadata: {
-                    userId,
-                    email: user.email
-                },
-                ipAddress: ipAddress || "unknown",
+            include: {
+                profile: true,
+                roles: {
+                    include: {
+                        role: true
+                    }
+                }
             }
         });
+
+        if (updatedById) {
+            await prisma.auditLog.create({
+                data: {
+                    userId: updatedById,
+                    action: "USER_UPDATED",
+                    resource: "USER",
+                    metadata: {
+                        targetUserId: userId,
+                        email: user.email
+                    },
+                    ipAddress: ipAddress || "unknown",
+                }
+            });
+        }
 
         const { passwordHash: _, ...sanitized } = user;
         return sanitized;
@@ -250,19 +275,34 @@ export class UserService {
     }
 
     static async getManager(role: string) {
-        let allowedManagerIds = getManagerId(role);
-        if (allowedManagerIds.length === 0) return [];
+        const allowedRoles = getManagerId(role);
+        if (allowedRoles.length === 0) return [];
 
         const managers = await prisma.user.findMany({
             where: {
-                id: { in: allowedManagerIds }
+                status: "ACTIVE",
+                roles: {
+                    some: {
+                        role: {
+                            name: {
+                                in: allowedRoles as any[]
+                            }
+                        }
+                    }
+                }
             },
             select: {
                 id: true,
                 name: true,
-                email: true
+                email: true,
+                roles: {
+                    include: {
+                        role: true
+                    }
+                }
             }
         });
+
         return managers;
     }
 }
