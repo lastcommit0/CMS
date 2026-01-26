@@ -46,6 +46,13 @@ export const ErrorCode = {
   META_TAG_INVALID: { code: 'META_TAG_INVALID', statusCode: 400, message: 'Invalid meta tag format' },
   META_DUPLICATE: { code: 'META_DUPLICATE', statusCode: 409, message: 'Meta tags already exist for this story' },
   META_REQUIRED_MISSING: { code: 'META_REQUIRED_MISSING', statusCode: 400, message: 'Required meta tags are missing' },
+  
+  MEDIA_UPLOAD_FAILED: { code: 'MEDIA_UPLOAD_FAILED', statusCode: 400, message: 'Media upload failed' },
+  MEDIA_NOT_FOUND: { code: 'MEDIA_NOT_FOUND', statusCode: 404, message: 'Media not found' },
+  MEDIA_UNAUTHORIZED_ACCESS: { code: 'MEDIA_UNAUTHORIZED_ACCESS', statusCode: 403, message: 'You do not have permission to access this media' },
+  MEDIA_TYPE_UNSUPPORTED: { code: 'MEDIA_TYPE_UNSUPPORTED', statusCode: 415, message: 'Media type not supported' },
+  MEDIA_SIZE_LIMIT_EXCEEDED: { code: 'MEDIA_SIZE_LIMIT_EXCEEDED', statusCode: 413, message: 'Media size exceeds maximum limit' },
+  
 
   SECTION_NOT_FOUND: { code: 'SECTION_NOT_FOUND', statusCode: 404, message: 'Section not found' },
   SECTION_SLUG_DUPLICATE: { code: 'SECTION_SLUG_DUPLICATE', statusCode: 409, message: 'Section slug already exists' },

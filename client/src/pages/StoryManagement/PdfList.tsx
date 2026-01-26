@@ -3,6 +3,22 @@ import { Button } from "@/components/ui/button"
 import { useState } from "react";
 import { MoreHorizontalIcon } from "lucide-react";
 import NewPaper from "./components/NewPaper";
+import { Ellipsis } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuPortal,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
 
 const data = [
     {
@@ -70,47 +86,49 @@ export default function PdfList() {
     }
 
     return (
-        <div>
+        <div className="bg-white">
             {!open && (
                 <div>
-            <header className="flex flex-row justify-between items-center pb-4 min-w-full px-8 py-4">
-                <div className="text-[18px] text-[#243874] font-semibold">
-                    E-Paper PDF List
-                </div>
-                <div className="flex flex-row gap-4">
-                    <SearchBox value="" onChange={(v) => { }} placeholder="Search by Text or ID" />
-                    <Button
-                        onClick={() => handleOpenModal()}
-                        className="bg-[#243874] text-white h-9 px-4 hover:bg-[#243874]/90 rounded-[4px]"
-                    >
-                        + New Paper
-                    </Button>
-                </div>
-            </header>
-            <div className="border-b"></div>
-            <div className="bg-white rounded-lg m-4 pl-4">
-                <div className="grid grid-cols-4 gap-4">
-                    {data.map((item) => (
-                        <div
-                            key={`${item.id}`}
-                            className="flex flex-col gap-2"
-                        >
-                            <PdfListItem image={item.image} type={item.type} />
-
-                            <div>
-                                <div className="font-medium">{item.title}</div>
-                                <p className="text-sm text-gray-500">
-                                    {item.publishedDate}
-                                </p>
-                            </div>
+                    <header className="flex flex-row justify-between items-center pb-4 min-w-full px-8 py-4">
+                        <div className="text-[18px] text-[#243874] font-semibold">
+                            E-Paper PDF List
                         </div>
-                    ))}
+                        <div className="flex flex-row gap-4">
+                            <SearchBox value="" onChange={(v) => { }} placeholder="Search by Text or ID" />
+                            <Button
+                                onClick={() => handleOpenModal()}
+                                className="bg-[#243874] text-white h-9 px-4 hover:bg-[#243874]/90 rounded-[4px]"
+                            >
+                                + New Paper
+                            </Button>
+                        </div>
+                    </header>
+                    <div className="border-b"></div>
+                    <div className="bg-white rounded-lg m-4 pl-4">
+                        <div className="grid grid-cols-4 gap-4">
+                            {data.map((item) => (
+                                <div
+                                    key={item.id}
+                                    className="flex flex-col gap-2"
+                                >
+                                    <PdfListItem image={item.image} type={item.type} />
+                                    <div className="flex flex-row gap-2 items-center justify-between">
+                                        <div>
+                                            <div className="font-medium">{item.title}</div>
+                                            <p className="text-sm text-gray-500">
+                                                {item.publishedDate}
+                                            </p>
+                                        </div>
+                                        <EditButton />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
-            </div>
-            </div>
             )}
             {open && (
-                <NewPaper onClose={handleCloseModal}/>
+                <NewPaper onClose={handleCloseModal} />
             )}
         </div>
     )
@@ -135,4 +153,26 @@ function PdfListItem({ image, type }: PdfListItemProps) {
         </div>
 
     )
+}
+
+
+
+export function EditButton() {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="bg-gray-50 mr-8 text-gray-500 text-4xl"><Ellipsis className="size-[20px]" /></button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start">
+        <DropdownMenuGroup>
+          <DropdownMenuItem className="text-black text-sm">
+            Edit Details
+          </DropdownMenuItem>
+          <DropdownMenuItem className="text-red-500 text-sm focus:text-red-500">
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
 }

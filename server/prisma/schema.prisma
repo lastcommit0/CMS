@@ -7,98 +7,95 @@ datasource db {
   provider = "postgresql"
 }
 
-
 model User {
-  id                  String     @id @default(cuid())
-  name                String
-  email               String     @unique
-  phone               String?    @unique
-  passwordHash        String?
-  authProvider        AuthProvider @default(LOCAL)
-  status              UserStatus  @default(ACTIVE)
+  id           String       @id @default(cuid())
+  name         String
+  email        String       @unique
+  phone        String?      @unique
+  passwordHash String?
+  authProvider AuthProvider @default(LOCAL)
+  status       UserStatus   @default(ACTIVE)
 
-  failedLoginAttempts Int         @default(0)
+  failedLoginAttempts Int @default(0)
 
-  roles               UserRole[]
-  oauthAccounts       OAuthAccount[]
-  sessions            Session[]
-  profile             UserProfile?
+  roles         UserRole[]
+  oauthAccounts OAuthAccount[]
+  sessions      Session[]
+  profile       UserProfile?
 
-  stories             Story[]
-  epapers             EPaper[]
-  storyEdits          StoryVersion[]
-  polls               Poll[]
-  pollVotes           PollVote[]
-  reports             Report[]
-  auditLogs           AuditLog[]
+  stories    Story[]
+  epapers    EPaper[]
+  storyEdits StoryVersion[]
+  polls      Poll[]
+  pollVotes  PollVote[]
+  reports    Report[]
+  auditLogs  AuditLog[]
 
-  managerId           String?
-  manager             User?   @relation("UserManager", fields: [managerId], references: [id], onDelete: SetNull)
-  subordinates        User[]  @relation("UserManager")
+  managerId    String?
+  manager      User?   @relation("UserManager", fields: [managerId], references: [id], onDelete: SetNull)
+  subordinates User[]  @relation("UserManager")
 
-  createdById         String?
-  createdBy           User?   @relation("UserCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  createdUsers        User[]  @relation("UserCreator")
+  createdById  String?
+  createdBy    User?   @relation("UserCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdUsers User[]  @relation("UserCreator")
 
-  priorityLogs        PriorityLog[]
+  priorityLogs PriorityLog[]
 
-
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([email])
   @@index([status])
 }
 
 model UserProfile {
-  id                  String      @id @default(cuid())
-  userId              String      @unique
-  designation         Designation
-  jobType             JobType
-  location            String?
-  bio                 String?
-  avatar              String?
+  id          String      @id @default(cuid())
+  userId      String      @unique
+  designation Designation
+  jobType     JobType
+  location    String?
+  bio         String?
+  avatar      String?
 
-  user                User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model UserRole {
-  id                  String @id @default(cuid())
-  userId              String
-  roleId              String
+  id     String @id @default(cuid())
+  userId String
+  roleId String
 
-  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role                RoleModel @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role RoleModel @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
 }
 
 model RoleModel {
-  id                  String     @id @default(cuid())
-  name                Role       @unique
-  description         String?
-  users               UserRole[]
-  permissions         RolePermission[]
+  id          String           @id @default(cuid())
+  name        Role             @unique
+  description String?
+  users       UserRole[]
+  permissions RolePermission[]
 }
 
 model Permission {
-  id                  String @id @default(cuid())
-  key                 String @unique
-  label               String
-  rolePermission      RolePermission[]
+  id             String           @id @default(cuid())
+  key            String           @unique
+  label          String
+  rolePermission RolePermission[]
 }
 
 model RolePermission {
-  id                  String @id @default(cuid())
-  roleId              String
-  permissionId        String
+  id           String @id @default(cuid())
+  roleId       String
+  permissionId String
 
-  role                RoleModel  @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission          Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role       RoleModel  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@unique([roleId, permissionId])
 }
-
 
 model OAuthAccount {
   id                String @id @default(cuid())
@@ -121,7 +118,6 @@ model Session {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-
 model Story {
   id         String      @id @default(cuid())
   title      String
@@ -134,16 +130,16 @@ model Story {
   scheduleAt DateTime?
   authorId   String
 
-  author   User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  assets   StoryAsset[]
-  sections StorySection[]
-  versions StoryVersion[]
-  meta     MetaTag?
+  author       User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  assets       StoryAsset[]
+  sections     StorySection[]
+  versions     StoryVersion[]
+  meta         MetaTag?
   priorityLogs PriorityLog[]
 
   publishedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([status])
   @@index([authorId])
@@ -151,13 +147,13 @@ model Story {
 }
 
 model StoryVersion {
-  id        String  @id @default(cuid())
-  storyId   String
-  content   Json
-  editedBy  String
-  reason    String?
+  id       String  @id @default(cuid())
+  storyId  String
+  content  Json
+  editedBy String
+  reason   String?
 
-  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  story  Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
   editor User  @relation(fields: [editedBy], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -179,7 +175,7 @@ model Section {
   slug     String  @unique
   isActive Boolean @default(true)
 
-  stories StorySection[]
+  stories      StorySection[]
   priorityLogs PriorityLog[]
 }
 
@@ -199,7 +195,7 @@ model StorySection {
 }
 
 model PriorityLog {
-  id          String   @id @default(cuid())
+  id          String @id @default(cuid())
   storyId     String
   sectionId   String
   oldPriority Int
@@ -213,50 +209,49 @@ model PriorityLog {
   changedAt DateTime @default(now())
 }
 
-
 model Poll {
-  id        String        @id @default(cuid())
+  id        String       @id @default(cuid())
   storyId   String?
   question  String
   startsAt  DateTime
   endsAt    DateTime
-  status    PollStatus    @default(INACTIVE)
+  status    PollStatus   @default(INACTIVE)
   createdBy String
-  creator   User          @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  creator   User         @relation(fields: [createdBy], references: [id], onDelete: Cascade)
   options   PollOption[]
-  votes     PollVote[]  
+  votes     PollVote[]
 }
 
 model PollOption {
-  id     String @id @default(cuid())
+  id     String     @id @default(cuid())
   pollId String
   text   String
-  poll   Poll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
   votes  PollVote[]
 }
 
 model PollVote {
-  id        String  @id @default(cuid())
+  id        String     @id @default(cuid())
   pollId    String
   optionId  String
   userId    String?
   ipAddress String?
-  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
-  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
-  user   User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option    PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@unique([pollId, userId])
   @@unique([pollId, ipAddress])
 }
 
-
 model EPaper {
-  id          String      @id @default(cuid())
+  id          String       @id @default(cuid())
   title       String
   type        EPaperType
   editionDate DateTime
   coverImage  String
   pdfUrl      String
+  pages       Page[]
   status      EPaperStatus @default(PUBLISHED)
   createdBy   String
 
@@ -265,6 +260,13 @@ model EPaper {
   createdAt DateTime @default(now())
 }
 
+model Page {
+  id       String @id @default(cuid())
+  imageUrl String
+  order    Int
+  epaperId String
+  epaper   EPaper @relation(fields: [epaperId], references: [id], onDelete: Cascade)
+}
 
 model ContactMessage {
   id        String  @id @default(cuid())
@@ -279,7 +281,7 @@ model ContactMessage {
 }
 
 model Report {
-  id          String  @id @default(cuid())
+  id          String @id @default(cuid())
   type        String
   filters     Json
   generatedBy String
@@ -301,7 +303,6 @@ model AuditLog {
 
   createdAt DateTime @default(now())
 }
-
 
 model Category {
   id       String  @id @default(cuid())
@@ -325,7 +326,6 @@ model MetaTag {
 
   story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
 }
-
 
 enum StoryStatus {
   DRAFT
