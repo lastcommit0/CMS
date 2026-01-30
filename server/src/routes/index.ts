@@ -9,6 +9,7 @@ import metaRoute from "./metaRoute";
 import priorityRoute from "./priorityRoute";
 import reportRoute from "./reportRoute";
 import searchRoute from "./searchRoute";
+import epaperRoute from "./epaperRoute";
 
 const router = Router();
 
@@ -23,6 +24,7 @@ router.use('/meta', metaRoute);
 router.use('/priority', priorityRoute);
 router.use('/report', reportRoute);
 router.use('/', searchRoute);
+router.use('/epapers', epaperRoute);
 
 
 export default router;

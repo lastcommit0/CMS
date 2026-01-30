@@ -66,6 +66,10 @@ export const ErrorCode = {
   REPORT_GENERATION_FAILED: { code: 'REPORT_GENERATION_FAILED', statusCode: 500, message: 'Report generation failed' },
   REPORT_PERMISSION_DENIED: { code: 'REPORT_PERMISSION_DENIED', statusCode: 403, message: 'You do not have permission to generate reports' },
 
+  VALIDATION_ERROR: { code: 'VALIDATION_ERROR', statusCode: 400, message: 'Input validation failed' },
+  VALIDATION_REQUIRED: { code: 'VALIDATION_REQUIRED', statusCode: 400, message: 'Required field is missing' },
+  VALIDATION_TYPE: { code: 'VALIDATION_TYPE', statusCode: 400, message: 'Invalid field type' },
+
   SYSTEM_DATABASE_ERROR: { code: 'SYSTEM_DATABASE_ERROR', statusCode: 500, message: 'Database operation failed' },
   SYSTEM_RATE_LIMIT: { code: 'SYSTEM_RATE_LIMIT', statusCode: 429, message: 'Too many requests. Please try again later.' },
   SYSTEM_SERVICE_UNAVAILABLE: { code: 'SYSTEM_SERVICE_UNAVAILABLE', statusCode: 503, message: 'Service temporarily unavailable' },

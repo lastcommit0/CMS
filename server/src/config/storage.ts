@@ -4,32 +4,40 @@ import {v2 as cloudinary} from 'cloudinary';
 
 
 const storage = new CloudinaryStorage({
-    cloudinary,
+  cloudinary,
+  params: async (req, file) => {
+    const isImage = file.mimetype.startsWith("image/");
+    const isVideo = file.mimetype.startsWith("video/");
+    const isPdf = file.mimetype === "application/pdf";
 
-    params: async (__dirname, file)=>{
-        
-        let folder = "others";
-        let resource_type: "video" | "image" | "raw" = "raw";
+    let folder = "others";
+    let resource_type: "video" | "image" | "raw" = "raw";
+    let transformation: any[] = [];
 
-        if(file.mimetype.startsWith("image/")){
-            folder = "images";
-            resource_type = "image";
-        }
-        if(file.mimetype.startsWith("video/")){
-            folder = "videos";
-            resource_type = "video";
-        }
-        if(file.mimetype === "application/pdf"){
-            folder = "pdfs";
-            resource_type = "raw";
-        }
-
-        return {
-            folder,
-            resource_type,
-            public_id: `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`,
-        };
+    if (isImage) {
+      folder = "cms/images";
+      resource_type = "image";
+      transformation = [{ quality: "auto", fetch_format: "auto" }];
+    } else if (isVideo) {
+      folder = "cms/videos";
+      resource_type = "video";
+    } else if (isPdf) {
+      folder = "cms/pdfs";
     }
+
+    const cleanName = file.originalname
+      .split('.')[0]
+      .replace(/[^a-z0-9]/gi, "_")
+      .toLowerCase();
+
+    return {
+      folder,
+      resource_type,
+      public_id: `${Date.now()}-${cleanName}`,
+      transformation, 
+      allowed_formats: ["jpg", "png", "jpeg", "gif", "mp4", "pdf", "webp"], 
+    };
+  },
 });
 
 

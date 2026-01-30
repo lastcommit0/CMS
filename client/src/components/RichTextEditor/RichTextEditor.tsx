@@ -1,0 +1,315 @@
+import { useState, useRef, useEffect } from "react";
+import { Code } from "lucide-react";
+import { FaCaretDown } from "react-icons/fa";
+import {
+    MdOutlineFormatAlignJustify,
+    MdOutlineFormatAlignLeft,
+    MdOutlineFormatAlignRight,
+    MdOutlineFormatAlignCenter,
+} from "react-icons/md";
+
+interface RichTextEditorProps {
+    value?: string;
+    onChange: (value: string) => void;
+    rows?: number;
+    className?: string;
+    placeholder?: string;
+}
+
+const RichTextEditor = ({
+    value = "",
+    onChange,
+    rows = 8,
+    className = "",
+    placeholder = "Type here..."
+}: RichTextEditorProps) => {
+    const editorRef = useRef<HTMLDivElement>(null);
+    const [showColorPicker, setShowColorPicker] = useState(false);
+    const [showHighlightPicker, setShowHighlightPicker] = useState(false);
+    const isInternalUpdate = useRef(false);
+
+    const textColors = ["#000000", "#FF0000", "#0000FF", "#008000", "#FF6600", "#800080"];
+    const highlightColors = ["#FFFF00", "#00FF00", "#00FFFF", "#FF00FF", "#FFA500", "#FFB6C1"];
+
+    useEffect(() => {
+        if (editorRef.current && !isInternalUpdate.current) {
+            if (editorRef.current.innerHTML !== value) {
+                editorRef.current.innerHTML = value;
+            }
+        }
+        isInternalUpdate.current = false;
+    }, [value]);
+
+    const handleInput = () => {
+        if (editorRef.current) {
+            isInternalUpdate.current = true;
+            onChange(editorRef.current.innerHTML);
+        }
+    };
+
+    const executeCommand = (command: string, value: string | undefined = undefined) => {
+        document.execCommand(command, false, value);
+        editorRef.current?.focus();
+        handleInput();
+    };
+
+    const formatText = (command: string) => {
+        executeCommand(command);
+    };
+
+    const applyColor = (color: string) => {
+        console.log('Applying text color:', color);
+        executeCommand('foreColor', color);
+        setShowColorPicker(false);
+    };
+
+    const applyHighlight = (color: string) => {
+        console.log('Applying highlight color:', color);
+        executeCommand('hiliteColor', color);
+        setShowHighlightPicker(false);
+    };
+
+    const applyAlignment = (alignment: string) => {
+        const alignmentMap: { [key: string]: string } = {
+            'left': 'justifyLeft',
+            'center': 'justifyCenter',
+            'right': 'justifyRight',
+            'justify': 'justifyFull'
+        };
+        executeCommand(alignmentMap[alignment]);
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            console.log('Click outside:', e.target);
+            const target = e.target as HTMLElement;
+            if (!target.closest(".color-picker-wrapper")) {
+                setShowColorPicker(false);
+                console.log('Hiding color picker');
+                setShowHighlightPicker(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const minHeight = `${rows * 1.5}rem`;
+
+    return (
+        <div className={className}>
+            <div className="relative">
+                <div className="absolute flex gap-2 mx-2 mt-2 w-fit z-10">
+                    <div className="flex border-2 border-gray-200 rounded overflow-hidden bg-white shadow-sm">
+                        <ToolbarButton
+                            onClick={() => formatText('bold')}
+                            className="font-extrabold"
+                            title="Bold (Ctrl+B)"
+                        >
+                            B
+                        </ToolbarButton>
+                        <ToolbarButton
+                            onClick={() => formatText('italic')}
+                            className="italic border-r"
+                            title="Italic (Ctrl+I)"
+                        >
+                            I
+                        </ToolbarButton>
+                        <ToolbarButton
+                            onClick={() => formatText('underline')}
+                            className="underline"
+                            title="Underline (Ctrl+U)"
+                        >
+                            U
+                        </ToolbarButton>
+                    </div>
+
+                    <div className="flex border-2 border-gray-200 rounded overflow-hidden bg-white shadow-sm">
+                        <div className="relative color-picker-wrapper">
+                            <ToolbarButton
+                                onClick={() => {
+                                    setShowColorPicker(!showColorPicker);
+                                    setShowHighlightPicker(false);
+                                }}
+                                active={showColorPicker}
+                                className="w-10 border-r"
+                                title="Text Color"
+                            >
+                                <span className="w-4 h-4 bg-[#606060] text-white flex items-center justify-center text-xs rounded">
+                                    A
+                                </span>
+                                <FaCaretDown size={12} className="ml-1" />
+                            </ToolbarButton>
+                            {showColorPicker && (
+                                <ColorGrid colors={textColors} onSelect={applyColor} />
+                            )}
+                        </div>
+
+                        <div className="relative color-picker-wrapper">
+                            <ToolbarButton
+                                onClick={() => {
+                                    setShowHighlightPicker(!showHighlightPicker);
+                                    setShowColorPicker(false);
+                                }}
+                                active={showHighlightPicker}
+                                className="w-10"
+                                title="Highlight"
+                            >
+                                <span className="w-4 h-4 mb-1 text-[#606060] flex items-center font-semibold justify-center text-sm rounded underline decoration-2">
+                                    A
+                                </span>
+                                <FaCaretDown size={12} className="ml-1" />
+                            </ToolbarButton>
+                            {showHighlightPicker && (
+                                <ColorGrid colors={highlightColors} onSelect={applyHighlight} />
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex border-2 border-gray-200 rounded overflow-hidden bg-white shadow-sm">
+                        <ToolbarButton
+                            onClick={() => applyAlignment('left')}
+                            className="border-r"
+                            title="Align Left"
+                        >
+                            <MdOutlineFormatAlignLeft size={18} />
+                        </ToolbarButton>
+                        <ToolbarButton
+                            onClick={() => applyAlignment('center')}
+                            className="border-r"
+                            title="Align Center"
+                        >
+                            <MdOutlineFormatAlignCenter size={18} />
+                        </ToolbarButton>
+                        <ToolbarButton
+                            onClick={() => applyAlignment('right')}
+                            className="border-r"
+                            title="Align Right"
+                        >
+                            <MdOutlineFormatAlignRight size={18} />
+                        </ToolbarButton>
+                        <ToolbarButton
+                            onClick={() => applyAlignment('justify')}
+                            title="Justify"
+                        >
+                            <MdOutlineFormatAlignJustify size={18} />
+                        </ToolbarButton>
+                    </div>
+
+                    <div className="flex border-2 border-gray-200 rounded overflow-hidden bg-white shadow-sm">
+                        <ToolbarButton
+                            onClick={() => {
+                                const selection = window.getSelection();
+                                if (selection && selection.rangeCount > 0) {
+                                    const range = selection.getRangeAt(0);
+                                    const code = document.createElement('code');
+                                    code.style.cssText = 'background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.9em;';
+                                    try {
+                                        range.surroundContents(code);
+                                        handleInput();
+                                    } catch (e) {
+                                        console.error('Code formatting error:', e);
+                                    }
+                                }
+                                editorRef.current?.focus();
+                            }}
+                            title="Code"
+                        >
+                            <Code size={18} />
+                        </ToolbarButton>
+                    </div>
+                </div>
+
+                <div
+                    ref={editorRef}
+                    contentEditable
+                    onInput={handleInput}
+                    className="custom-input resize-none w-full pt-12 focus:outline-none"
+                    style={{ minHeight }}
+                    data-placeholder={placeholder}
+                    suppressContentEditableWarning
+                />
+
+                <style>{`
+                    [contentEditable][data-placeholder]:empty:before {
+                        content: attr(data-placeholder);
+                        color: #9ca3af;
+                        cursor: text;
+                        pointer-events: none;
+                    }
+                    [contentEditable] strong, [contentEditable] b { 
+                        font-weight: 700; 
+                    }
+                    [contentEditable] em, [contentEditable] i { 
+                        font-style: italic; 
+                    }
+                    [contentEditable] u { 
+                        text-decoration: underline; 
+                    }
+                    [contentEditable] code { 
+                        background: #f1f5f9; 
+                        padding: 2px 6px; 
+                        border-radius: 4px; 
+                        font-family: monospace; 
+                        font-size: 0.9em;
+                    }
+                    [contentEditable]:focus {
+                        outline: none;
+                    }
+                `}</style>
+            </div>
+        </div>
+    );
+};
+
+export default RichTextEditor;
+
+const ToolbarButton = ({ 
+    children, 
+    onClick, 
+    active = false, 
+    className = "",
+    title 
+}: { 
+    children: React.ReactNode; 
+    onClick: () => void; 
+    active?: boolean; 
+    className?: string;
+    title?: string;
+}) => (
+    <button
+        type="button"
+        onMouseDown={(e) => {
+            e.preventDefault();
+            onClick();
+        }}
+        className={`size-7 flex items-center justify-center text-[#606060] hover:bg-gray-100 transition-colors ${active ? 'bg-gray-100' : ''} ${className}`}
+        title={title}
+    >
+        {children}
+    </button>
+);
+
+const ColorGrid = ({ 
+    colors, 
+    onSelect 
+}: { 
+    colors: string[]; 
+    onSelect: (c: string) => void;
+}) => (
+    <div className="absolute top-full left-0 mt-1 p-2 bg-white border-2 border-gray-200 rounded-lg shadow-xl z-30 grid grid-cols-3 gap-1.5">
+        {colors.map(c => (
+            <button
+                key={c}
+                type="button"
+                onMouseDown={(e) => {
+                    e.preventDefault();
+                    onSelect(c);
+                }}
+                className="w-6 h-6 rounded border border-gray-300 hover:scale-110 transition-transform"
+                style={{ backgroundColor: c }}
+                title={c}
+            />
+        ))}
+    </div>
+);

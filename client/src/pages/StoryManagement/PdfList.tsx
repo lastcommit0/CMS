@@ -114,8 +114,8 @@ export default function PdfList() {
                                     <PdfListItem image={item.image} type={item.type} />
                                     <div className="flex flex-row gap-2 items-center justify-between">
                                         <div>
-                                            <div className="font-medium">{item.title}</div>
-                                            <p className="text-sm text-gray-500">
+                                            <div className="font-light text-[14px]">{item.title}</div>
+                                            <p className="text-xs text-gray-500">
                                                 {item.publishedDate}
                                             </p>
                                         </div>
@@ -146,7 +146,7 @@ function PdfListItem({ image, type }: PdfListItemProps) {
         <div className="relative min-h-[306px] w-[235px] h-full">
             <img src={image || ""} alt="Preview" className="w-full h-full object-cover border-2 rounded-lg overflow-hidden" />
             <span
-                className={`absolute bottom-0 left-0 text-white p-1 rounded-bl-lg rounded-tr-lg ${type === "Magazine" ? "bg-[#FBAD40]" : "bg-[#243874]"}`}
+                className={`absolute bottom-0 left-0 p-1 text-xs p-2 rounded-bl-lg rounded-tr-lg ${type === "Magazine" ? "bg-[#FBAD40] text-black" : "bg-[#243874] text-white"}`}
             >
                 {type}
             </span>
@@ -161,7 +161,7 @@ export function EditButton() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="bg-gray-50 mr-8 text-gray-500 text-4xl"><Ellipsis className="size-[20px]" /></button>
+        <button className="bg-gray-50 mr-8 text-gray-500 text-4xl cursor-pointer"><Ellipsis className="size-[20px]" /></button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         <DropdownMenuGroup>

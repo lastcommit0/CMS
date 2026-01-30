@@ -1,10 +1,10 @@
-// client/src/pages/UserManagement/AdminUserList.tsx
 import { useState, useEffect } from "react";
 import { Search, SquarePen, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import NewUser from "./components/NewUser";
 import { useUsers } from "@/hooks/useUsers";
+import SearchBox from "@/components/SearchBox"
 
 export default function AdminUserList() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,15 +53,7 @@ export default function AdminUserList() {
         </h1>
 
         <div className="flex items-center gap-4">
-          <div className="relative">
-            <Input
-              placeholder="Search by name or email"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-[360px] h-9 bg-[#EAEAEA] pr-9"
-            />
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-          </div>
+          <SearchBox value={searchQuery} onChange={setSearchQuery} />
 
           <Button
             onClick={() => openModal()}

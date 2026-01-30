@@ -1,39 +1,31 @@
-import { Request, Response } from "express";
-import { upload } from "../config/storage";
-import CustomError from "../errors/customError";
-import { ErrorCode } from "../errors/errorCode";
 import { mediaService } from "../services/storageService";
+import { Request, Response } from "express";
 
 
+export const uploadImage = async (req: Request, res: Response) => {
+    if (!req.user) throw new Error("Unauthorized");
+    const media = await mediaService.create(req.file, req.user.id, "IMAGE");
+    res.json(media);
+};
 
-export const mediaController = {
+export const uploadVideo = async (req: Request, res: Response) => {
+    if (!req.user) throw new Error("Unauthorized");
+    const media = await mediaService.create(req.file, req.user.id, "VIDEO");
+    res.json(media);
+};
 
-    uploadImage: async (req: Request, res: Response)=> {
-        try{
-            const userId = req.user!.id;
-            if(!userId) {
-                return res.status(400).json({
-                    success: false,
-                    error: new CustomError(ErrorCode.AUTH_INVALID_CREDENTIALS)
-                });
-            }
-            if(!req.file) {
-                return res.status(400).json({
-                    success: false,
-                    error: new CustomError(ErrorCode.MEDIA_UPLOAD_FAILED)
-                });
-            }
+export const uploadPdf = async (req: Request, res: Response) => {
+    if (!req.user) throw new Error("Unauthorized");
+    const media = await mediaService.create(req.file, req.user.id, "PDF");
+    res.json(media);
+};
 
-            const file = req.file as any;
+export const deleteMedia = async (req: Request, res: Response) => {
+    await mediaService.delete(req.params.id);
+    res.sendStatus(204);
+};
 
-            const media = await mediaService.createImage({
-                filename: file.originalname,
-                originalName: file.originalname,
-                mimeType: file.mimetype,
-                size: file.size,
-                path: file.path,
-                uploadedBy: userId
-            });
-        }
-    }
-}
+export const updateMedia = async (req: Request, res: Response) => {
+    const media = await mediaService.update(req.params.id, req.file);
+    res.json(media);
+};

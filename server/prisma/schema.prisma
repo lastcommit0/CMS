@@ -159,16 +159,6 @@ model StoryVersion {
   createdAt DateTime @default(now())
 }
 
-model StoryAsset {
-  id       String    @id @default(cuid())
-  storyId  String
-  type     AssetType
-  fileUrl  String
-  metadata Json?
-
-  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
-}
-
 model Section {
   id       String  @id @default(cuid())
   name     String
@@ -244,29 +234,66 @@ model PollVote {
   @@unique([pollId, ipAddress])
 }
 
-model EPaper {
-  id          String       @id @default(cuid())
-  title       String
-  type        EPaperType
-  editionDate DateTime
-  coverImage  String
-  pdfUrl      String
-  pages       Page[]
-  status      EPaperStatus @default(PUBLISHED)
-  createdBy   String
 
-  creator User @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+model StoryAsset {
+  id       String @id @default(cuid())
+  storyId  String
+  mediaId  String
+  order    Int
+  isCover  Boolean @default(false)
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  media MediaAsset @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@index([storyId, order])
+}
+
+
+model MediaAsset {
+  id         String   @id @default(cuid())
+  type       AssetType
+  fileUrl    String
+  publicId   String
+  mimeType   String
+  size       Int
+  metadata   Json?
+  uploadedBy String
+  createdAt  DateTime @default(now())
+
+  storyLinks StoryAsset[]
+  pageLinks  PageAsset[]
+
+  epaperPdf EPaper?
+}
+
+
+model EPaper {
+  id        String @id @default(cuid())
+  title     String
+  type      EPaperType
+  status    EPaperStatus @default(PUBLISHED)
+  authorId  String
+  author    User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  pdfMediaId String?  @unique
+  pdf        MediaAsset? @relation(fields: [pdfMediaId], references: [id], onDelete: SetNull)
+  pages      PageAsset[]
 
   createdAt DateTime @default(now())
 }
 
-model Page {
-  id       String @id @default(cuid())
-  imageUrl String
-  order    Int
+
+model PageAsset {
+  id        String @id @default(cuid())
   epaperId String
-  epaper   EPaper @relation(fields: [epaperId], references: [id], onDelete: Cascade)
+  mediaId  String
+  order    Int
+
+  epaper EPaper @relation(fields: [epaperId], references: [id], onDelete: Cascade)
+  media  MediaAsset @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([epaperId, order])
 }
+
 
 model ContactMessage {
   id        String  @id @default(cuid())

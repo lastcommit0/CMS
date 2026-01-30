@@ -52,31 +52,13 @@ export const AuthService = {
     });
 
     if (!user) {
-      user = await prisma.user.create({
-        data: {
-          email,
-          name,
-          authProvider: provider === "GOOGLE" ? "GOOGLE" : "LOCAL",
-          status: "ACTIVE",
-          profile: {
-            create: {
-              designation: "WRITER",
-              jobType: "FULL_TIME",
-              avatar,
-            },
-          },
-        },
-        include: {
-          roles: { include: { role: true } },
-        },
-      });
+      throw new CustomError(ErrorCode.USER_NOT_FOUND);
     }
 
     if (user.status !== "ACTIVE") {
       throw new CustomError(ErrorCode.AUTH_ACCOUNT_DISABLED);
     }
 
-    // Create or update OAuth account
     await prisma.oAuthAccount.upsert({
       where: {
         provider_providerAccountId: { provider, providerAccountId },
@@ -103,7 +85,6 @@ export const AuthService = {
       { expiresIn: "7d" }
     );
 
-    // Create session
     await prisma.session.create({
       data: {
         userId: user.id,
@@ -119,9 +100,6 @@ export const AuthService = {
     };
   },
 
-
-  // server/src/services/authService.ts - registerUser function update
-  // Replace the registerUser function with this improved version
 
   async registerUser(
     context: {

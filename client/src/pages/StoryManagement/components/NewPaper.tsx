@@ -6,9 +6,15 @@ import { toast } from "sonner"
 import addimg from "../../../assets/icons/addimg.svg";
 
 
+interface Page{
+  pageNumber: number;
+  pageContent: string;
+}
+
 export default function NewPaper({ onClose }: { onClose: () => void }) {
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const [pages, setPages] = useState<Page[]>([]);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
 
   const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {

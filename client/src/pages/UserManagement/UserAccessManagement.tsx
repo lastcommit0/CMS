@@ -1,5 +1,4 @@
-import { Search, SquarePen, X } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import { SquarePen, X } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -8,6 +7,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useState } from "react"
+import SearchBox from "@/components/SearchBox"
+import { Button } from "@/components/ui/button"
 
 const MOCK_DATA = [
   {
@@ -41,37 +42,28 @@ export default function UserAccessManagement() {
   return (
     <div className="w-full min-h-screen bg-white">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-4 bg-white">
+      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-4 md:px-6 py-4 bg-white border-b border-gray-200">
         <h1 className="text-[18px] font-semibold text-[#243874]">
           User Access Management
         </h1>
 
         <div className="flex items-center gap-4">
-          <div className="relative">
-            <Input
-              placeholder="Search by Text or ID"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-[360px] h-9 bg-[#EAEAEA] pr-9"
-            />
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-          </div>
+          <SearchBox value={searchQuery} onChange={setSearchQuery} />
 
-          <button
+          <Button
             onClick={() => setOpen(true)}
-            className="bg-[#243874] text-white h-9 px-4 rounded text-sm font-medium"
+            className="bg-[#243874] text-white h-9 px-4 hover:bg-[#243874]/90"
           >
-            + New Access
-          </button>
+            + New User
+          </Button>
         </div>
-      </div>
+      </header>
 
-      <div className="border-b border-gray-200" />
 
       {/* Table */}
-      <div className="p-6">
-        <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
-          <table className="w-full">
+      <div className="p-4 md:p-6">
+        <div className="bg-white border rounded-md overflow-hidden">
+          <table className="min-w-[700px] w-full">
             <thead className="bg-[#F8F8F8] border-b">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-semibold">
@@ -94,7 +86,7 @@ export default function UserAccessManagement() {
                 <tr key={item.id}>
                   <td className="px-4 py-3 text-sm">{item.id}</td>
                   <td className="px-4 py-3 text-sm">{item.role}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
+                  <td className="px-4 py-3 text-sm text-gray-600 max-w-[380px]">
                     {item.pages}
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -109,7 +101,7 @@ export default function UserAccessManagement() {
 
       {/* Modal */}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
 
           {/* BACKGROUND OVERLAY (this was broken earlier) */}
           <div
@@ -119,7 +111,7 @@ export default function UserAccessManagement() {
 
           {/* MODAL (centered & sharp) */}
           <div
-            className="relative left-44 bg-white w-[510px] rounded-md shadow-xl"
+            className="relative bg-white w-full max-w-[510px] rounded-md shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal header */}

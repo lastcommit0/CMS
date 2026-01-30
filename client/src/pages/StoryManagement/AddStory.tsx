@@ -2,11 +2,12 @@ import { Clipboard, Tag } from "lucide-react"
 import image from "../../assets/icons/image.svg"
 import pdf from "../../assets/icons/pdf.svg"
 import type { StoryFormState, EditorContent } from "@/types/storyTypes"
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useCreateStory } from "@/hooks/useStories"
 import { toast } from "sonner"
 import { Loader2, X } from "lucide-react"
+import RichTextEditor from "@/components/RichTextEditor/RichTextEditor"
 
 const initialStoryFormState: StoryFormState = {
   type: 'STORY',
@@ -44,6 +45,7 @@ export default function AddStory() {
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const textRef = useRef<HTMLTextAreaElement>(null);
   
   // Temporary text state for description and highlights
   const [descriptionText, setDescriptionText] = useState('');
@@ -367,7 +369,6 @@ export default function AddStory() {
                   className="flex-1 bg-transparent px-3 py-2 text-sm outline-none"
                   value={form.storyUrl}
                   onChange={(e) => handleInputChange('storyUrl', e.target.value)}
-                  placeholder="auto-generated-from-title"
                 />
                 <button 
                   className="px-3 text-gray-500 hover:text-gray-700"
@@ -468,13 +469,11 @@ export default function AddStory() {
           {/* Description */}
           <div>
             <label className="custom-label">Description</label>
-            <textarea 
-              rows={4} 
-              className="custom-input resize-none w-full"
-              value={descriptionText}
-              onChange={(e) => setDescriptionText(e.target.value)}
-              placeholder="Enter article description..."
-            />
+              <RichTextEditor
+                value={descriptionText}
+                onChange={setDescriptionText}
+                rows={8}
+              />
           </div>
 
           {/* SEO */}
@@ -611,12 +610,10 @@ export default function AddStory() {
               
               <div className="flex flex-col">
                 <label className="custom-label">Highlights</label>
-                <textarea 
-                  rows={3} 
-                  className="custom-input resize-none" 
+                <RichTextEditor
                   value={highlightsText}
-                  onChange={(e) => setHighlightsText(e.target.value)}
-                  placeholder="Key highlights of the story"
+                  onChange={setHighlightsText}
+                  rows={4}
                 />
               </div>
 

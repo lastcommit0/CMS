@@ -22,7 +22,6 @@ interface Manager {
 
 export default function NewUser({ closeModal, modalType, onSuccess }: NewUserProps) {
   const isEditMode = !!modalType;
-  
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
@@ -39,7 +38,6 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
     avatar: "",
   });
 
-  // Load existing user data if in edit mode
   useEffect(() => {
     if (isEditMode && modalType) {
       const nameParts = modalType.name?.split(" ") || ["", ""];
@@ -48,7 +46,7 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
         lastName: nameParts.slice(1).join(" ") || "",
         email: modalType.email || "",
         phone: modalType.phone || "",
-        password: "", // Never pre-fill password
+        password: "",
         location: modalType.profile?.location || "",
         bio: modalType.profile?.bio || "",
         role: modalType.roles?.[0]?.role?.name || "",
@@ -222,7 +220,6 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
     <div className="fixed min-h-screen inset-0 z-50 flex justify-end items-start">
       <div className="absolute inset-0 bg-black/40" onClick={closeModal} />
 
-      {/* Drawer */}
       <div
         className="relative min-h-screen w-[520px] max-h-screen overflow-y-auto bg-white shadow-xl z-10"
         onClick={(e) => e.stopPropagation()}
@@ -304,7 +301,6 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
                     value={formData.phone}
                     onChange={(e) => handleInputChange("phone", e.target.value)}
                     className="bg-gray-100 border-0 border-b-2 border-gray-200 rounded-none"
-                    placeholder="+1234567890"
                     disabled={isSubmitting}
                   />
                 </div>
@@ -318,7 +314,6 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
                       value={formData.password}
                       onChange={(e) => handleInputChange("password", e.target.value)}
                       className="bg-gray-100 border-0 border-b-2 border-gray-200 rounded-none pr-10"
-                      placeholder={isEditMode ? "Leave blank to keep current" : "Min 8 characters"}
                       disabled={isSubmitting}
                     />
                     <button
@@ -341,7 +336,6 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
                   value={formData.location}
                   onChange={(e) => handleInputChange("location", e.target.value)}
                   className="bg-gray-100 border-0 border-b-2 border-gray-200 rounded-none"
-                  placeholder="City, State"
                   disabled={isSubmitting}
                 />
               </div>
@@ -355,7 +349,6 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   className="bg-gray-100 border-0 border-b-2 border-gray-200 rounded-none"
-                  placeholder="user@example.com"
                   disabled={isSubmitting}
                 />
               </div>
@@ -369,7 +362,6 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
                   onChange={(e) => handleInputChange("bio", e.target.value)}
                   rows={3}
                   className="w-full bg-gray-100 border-0 border-b-2 border-gray-200 rounded-none px-3 py-2 text-sm outline-none resize-none"
-                  placeholder="Brief description about the user"
                   disabled={isSubmitting}
                 />
               </div>
@@ -414,17 +406,15 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
                   options={roleOptions}
                   onChange={(value) => {
                     handleInputChange("role", value);
-                    // Reset manager when role changes
                     handleInputChange("managerId", "");
                   }}
-                  disabled={isSubmitting || isEditMode} // Can't change role in edit mode
+                  disabled={isSubmitting || isEditMode}
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
         <div className="sticky bottom-0 bg-white border-t px-6 py-4">
           <Button
             onClick={handleSubmit}
