@@ -88,81 +88,80 @@ export const deleteStory = async (req: Request, res: Response, next: NextFunctio
     res.json({ success: true, data: {} });
 };
 
-export const publishStory = async (req: Request, res: Response, next: NextFunction) => {
-    const story = await StoryService.publish(req.params.id);
+// export const publishStory = async (req: Request, res: Response, next: NextFunction) => {
+//     const story = await StoryService.publish(req.params.id);
 
-    await prisma.auditLog.create({
-        data: {
-            userId: req.user!.id,
-            action: 'STORY_PUBLISHED',
-            resource: 'Story',
-            metadata: { storyId: req.params.id },
-            ipAddress: req.ip || 'unknown'
-        }
-    });
+//     await prisma.auditLog.create({
+//         data: {
+//             userId: req.user!.id,
+//             action: 'STORY_PUBLISHED',
+//             resource: 'Story',
+//             metadata: { storyId: req.params.id },
+//             ipAddress: req.ip || 'unknown'
+//         }
+//     });
 
-    res.json({ success: true, data: story });
-};
+//     res.json({ success: true, data: story });
+// };
 
-export const unpublishStory = async (req: Request, res: Response, next: NextFunction) => {
-    const story = await StoryService.hold(req.params.id);
+// export const unpublishStory = async (req: Request, res: Response, next: NextFunction) => {
+//     const story = await StoryService.hold(req.params.id);
 
-    await prisma.auditLog.create({
-        data: {
-            userId: req.user!.id,
-            action: 'STORY_UNPUBLISHED',
-            resource: 'Story',
-            metadata: { storyId: req.params.id },
-            ipAddress: req.ip || 'unknown'
-        }
-    });
+//     await prisma.auditLog.create({
+//         data: {
+//             userId: req.user!.id,
+//             action: 'STORY_UNPUBLISHED',
+//             resource: 'Story',
+//             metadata: { storyId: req.params.id },
+//             ipAddress: req.ip || 'unknown'
+//         }
+//     });
 
-    res.json({ success: true, data: story });
+//     res.json({ success: true, data: story });
 
-};
+// };
 
 
-export const pendingStory = async (req: Request, res: Response, next: NextFunction) => {
-    const story = await StoryService.pending(req.params.id);
+// export const pendingStory = async (req: Request, res: Response, next: NextFunction) => {
+//     const story = await StoryService.pending(req.params.id);
 
-    await prisma.auditLog.create({
-        data: {
-            userId: req.user!.id,
-            action: 'STORY_PENDING',
-            resource: 'Story',
-            metadata: { storyId: req.params.id },
-            ipAddress: req.ip || 'unknown'
-        }
-    });
+//     await prisma.auditLog.create({
+//         data: {
+//             userId: req.user!.id,
+//             action: 'STORY_PENDING',
+//             resource: 'Story',
+//             metadata: { storyId: req.params.id },
+//             ipAddress: req.ip || 'unknown'
+//         }
+//     });
 
-    res.json({ success: true, data: story });
+//     res.json({ success: true, data: story });
 
-};
+// };
 
+// export const scheduleStory = async (req: Request, res: Response, next: NextFunction) => {
+//     const { scheduleAt } = req.body;
+//     if (!scheduleAt) throw new Error('scheduleAt is required');
+    
+//     const story = await StoryService.schedule(req.params.id, scheduleAt);
+    
+//     await prisma.auditLog.create({
+//         data: {
+//             userId: req.user!.id,
+//             action: 'STORY_SCHEDULED',
+//             resource: 'Story',
+//             metadata: { storyId: req.params.id, scheduleAt },
+//             ipAddress: req.ip || 'unknown'
+//         }
+//     });
+
+//     res.json({ success: true, data: story });
+
+// };
 
 export const stats = async (req: Request, res: Response, next: NextFunction) => {
     const stats = await StoryService.stats();
     res.json({ success: true, data: stats });
-};
-
-export const scheduleStory = async (req: Request, res: Response, next: NextFunction) => {
-    const { scheduleAt } = req.body;
-    if (!scheduleAt) throw new Error('scheduleAt is required');
-
-    const story = await StoryService.schedule(req.params.id, scheduleAt);
-
-    await prisma.auditLog.create({
-        data: {
-            userId: req.user!.id,
-            action: 'STORY_SCHEDULED',
-            resource: 'Story',
-            metadata: { storyId: req.params.id, scheduleAt },
-            ipAddress: req.ip || 'unknown'
-        }
-    });
-
-    res.json({ success: true, data: story });
-
 };
 
 export const addStoryAsset = async (req: Request, res: Response, next: NextFunction) => {

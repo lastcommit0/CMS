@@ -10,21 +10,25 @@ import priorityRoute from "./priorityRoute";
 import reportRoute from "./reportRoute";
 import searchRoute from "./searchRoute";
 import epaperRoute from "./epaperRoute";
+import storageRoute from "./storageRoute";
+import worklowRoute from "./workflowRoute";
+import { requireAuth } from "../middleware/authMiddleware";
 
 const router = Router();
 
 
-router.use('/auth', authRoute);
-router.use('/story', storyRoute);
-router.use('/section', storySectionRoute);
-router.use('/user', userRoute);
-router.use('/category', categoryRoute);
-router.use('/poll', pollRoute);
-router.use('/meta', metaRoute);
-router.use('/priority', priorityRoute);
-router.use('/report', reportRoute);
-router.use('/', searchRoute);
-router.use('/epapers', epaperRoute);
-
+router.use('/auth', requireAuth,  authRoute);
+router.use('/story', requireAuth, storyRoute);
+router.use('/section', requireAuth, storySectionRoute);
+router.use('/user', requireAuth, userRoute);
+router.use('/category', requireAuth, categoryRoute);
+router.use('/poll', requireAuth, pollRoute);
+router.use('/meta', requireAuth, metaRoute);
+router.use('/priority', requireAuth, priorityRoute);
+router.use('/report', requireAuth, reportRoute);
+router.use('/storage', requireAuth, storageRoute);
+router.use('/search', searchRoute);
+router.use('/epapers', requireAuth, epaperRoute);
+router.use('/status', worklowRoute)
 
 export default router;
