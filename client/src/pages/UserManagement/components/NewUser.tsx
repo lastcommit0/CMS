@@ -126,7 +126,8 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
 
   const buildPayload = () => {
     const payload: any = {
-      name: `${formData.firstName} ${formData.lastName}`,
+      firstName: formData.firstName,
+      lastName: formData.lastName, 
       email: formData.email,
       phone: formData.phone,
       designation: formData.designation,
@@ -137,12 +138,10 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
       avatar: formData.avatar || undefined,
     };
 
-    // Only include password if it's provided
     if (formData.password) {
       payload.password = formData.password;
     }
 
-    // For register, we need firstName, lastName, and role separately
     if (!isEditMode) {
       payload.firstName = formData.firstName;
       payload.lastName = formData.lastName;

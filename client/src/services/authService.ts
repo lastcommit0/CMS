@@ -13,8 +13,8 @@ export const authApi = {
     register: (data: RegisterData) =>
         apiClient.post<ApiResponse<User>>(`${BASE_URL}/register`, data),
 
-    identify: (email: string) =>
-        apiClient.post<ApiResponse<Identify>>(`${BASE_URL}/identify`, { identifier: email }),
+    identify: (identifier: string) =>
+        apiClient.post<ApiResponse<Identify>>(`${BASE_URL}/identify`, { identifier }),
 
     logout: () =>
         apiClient.post(`${BASE_URL}/logout`),

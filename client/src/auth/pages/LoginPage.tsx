@@ -6,32 +6,30 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
-import { authApi } from "@/services/authService"
 import { useNavigate } from "react-router-dom"
+import { useIdentifyUser } from "@/hooks/useAuth"
+
 
 export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [loading, setLoading] = useState(false)
+  const identifyMutation = useIdentifyUser();
   const router = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.trim()) {
-      console.log("Please enter email")
+    if (!identifier.trim()) {
+      console.log("Please enter identifier")
       return
     }
     try {
       setLoading(true)
-      const res = await authApi.identify(email);
-      if (!res.data.success || !res.data.data) return
+      const data = await identifyMutation.mutateAsync(identifier);
 
-      const { userId, username, requireCaptcha } = res.data.data
-      if (res.data.success) {
-        router(
-          `/login?userId=${userId}&captcha=${username}&username=${requireCaptcha}`
-        );
-      }
+      router(
+        `/login?identifier=${data.username}&captcha=${data.requireCaptcha}`
+      );
     } catch (err) {
       console.log(err)
     }
@@ -65,7 +63,7 @@ export default function LoginPage() {
                 Phone or Email
               </label>
               <Input id="contact" type="text" placeholder="" className="w-full h-12 bg-gray-50 border-gray-200"
-                onChange={(e) => { setEmail(e.target.value) }}
+                onChange={(e) => { setIdentifier(e.target.value) }}
               />
             </div>
 

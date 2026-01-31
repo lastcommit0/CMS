@@ -207,7 +207,6 @@ export const useSubmitForReview = () => {
     });
 };
 
-// Asset mutations
 export const useAddAsset = () => {
     const queryClient = useQueryClient();
 
@@ -280,7 +279,6 @@ export const useUploadPDF = () => {
     });
 };
 
-// Bulk operations
 export const useBulkUpdateStories = () => {
     const queryClient = useQueryClient();
 

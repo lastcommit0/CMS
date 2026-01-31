@@ -1,4 +1,3 @@
-// client/src/hooks/useUsers.ts
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   UserFilters,
@@ -68,7 +67,6 @@ export const useManagers = (role: string) =>
 
 
 
-/* ------------------ Mutations ------------------ */
 
 export const useUpdateUser = () => {
   const queryClient = useQueryClient();

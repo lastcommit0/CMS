@@ -10,22 +10,20 @@ const AUTH_KEYS = {
   user: ['auth', 'current-user'] as const,
 };
 
+export const useIdentifyUser = () => {
+  return useMutation({
+    mutationFn: async (identifier: string) => {
+      const res = await authApi.identify(identifier);
+      return res.data.data!;
+    },
 
-// export const useCurrentUser = () => {
-//   return useQuery<User | null>({
-//     queryKey: AUTH_KEYS.user,
-//     queryFn: async () => {
-//       try {
-//         const res = await authApi.getMe();
-//         return res.data.data;
-//       } catch {
-//         return null;
-//       }
-//     },
-//     enabled: !!accessTokenStore.get(),
-//     staleTime: 5 * 60 * 1000,
-//   });
-// };
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.error?.message ?? "User not found"
+      );
+    },
+  });
+};
 
 
 export const useLogin = () => {
@@ -57,7 +55,7 @@ export const useRegister = () => {
       const res = await authApi.register(data);
       return res.data.data!;
     },
-    
+
     onSuccess: () => {
       toast.success('User created successfully');
     },

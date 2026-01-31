@@ -8,6 +8,7 @@ import { notFoundHandler } from './middleware/notFoundHandler';
 import routes from './routes';
 import dotenv from 'dotenv';
 import passport from './config/passport';
+import { requestLogger } from './middleware/requestLogger';
 
 dotenv.config();
 
@@ -46,6 +47,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.use(requestLogger);
 app.use('/api', routes);
 
 app.use(notFoundHandler);

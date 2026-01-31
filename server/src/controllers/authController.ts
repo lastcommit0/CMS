@@ -128,13 +128,11 @@ export const logoutAll = async (req: Request, res: Response) => {
   })
 }
 
-
-
-// export const identify = async (req: Request, res: Response) => {
-//     const {identifier} = identifySchema.parse(req.body);
-//     const result = await AuthService.identifyUser(identifier);
-//     res.status(200).json({
-//         success: true,
-//         data: result
-//     })
-// }
+export const identify = async (req: Request, res: Response) => {
+    const {identifier} = identifySchema.parse(req.body);
+    const result = await AuthService.identifyUser(identifier);
+    res.status(200).json({
+        success: true,
+        data: result
+    })
+}
