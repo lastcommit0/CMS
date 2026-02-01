@@ -1,9 +1,12 @@
+import { z } from "zod";
+import { id } from "zod/v4/locales";
+
 export interface UserFilters {
   page?: number;
   limit?: number;
   search?: string;
-  role?: string;
-  status?: string;
+  role?: UserRole;
+  status?: UserStatus;
 }
 
 export interface ChangePasswordData {
@@ -22,29 +25,15 @@ export interface UserStats {
 }
 
 
-export interface UserFormState {
-  id: string
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  password: string
-  location?: string
-  bio: string
-  role: UserRole | ''
-  designation: Designation | ''
-  jobType: JobType | ''
-  managerId?: string
-  avatar?: string
-}
-
-
 export const UserRole = {
   ADMIN : "ADMIN",
   SUB_ADMIN : "SUB_ADMIN",
   EDITOR : "EDITOR",
 }as const;
-export type UserRole = typeof UserRole[keyof typeof UserRole];
+export const userRoleSchema = z.nativeEnum(UserRole);
+export type UserRole = z.infer<typeof userRoleSchema>;
+export const USER_ROLES = Object.values(UserRole);
+
 
 export const Designation = {
   OPERATIONS_MANAGER: "OPERATIONS_MANAGER",
@@ -56,7 +45,9 @@ export const Designation = {
   COPY_EDITOR: "COPY_EDITOR",
   SEO_EDITOR: "SEO_EDITOR",
 } as const;
-export type Designation = typeof Designation[keyof typeof Designation];
+export const designationSchema = z.nativeEnum(Designation);
+export type Designation = z.infer<typeof designationSchema>;
+export const DESIGNATIONS = Object.values(Designation);
 
 
 export const JobType = {
@@ -65,12 +56,34 @@ export const JobType = {
   FREELANCE : "FREELANCE",
   INTERN : "INTERN",
 } as const;
-export type JobType = typeof JobType[keyof typeof JobType];
+export const jobTypeSchema = z.nativeEnum(JobType);
+export type JobType = z.infer<typeof jobTypeSchema>;
+export const JOB_TYPES = Object.values(JobType);
+
+
+export const userFormSchema = z.object({
+  id: z.string().optional(),
+  firstName: z.string().min(2),
+  lastName: z.string().min(2),
+  email: z.string().email(),
+  phone: z.string(),
+  password: z.string().min(8).optional(),
+  role: userRoleSchema,
+  designation: designationSchema,
+  jobType: jobTypeSchema,
+  location: z.string().optional(),
+  bio: z.string(),
+  managerId: z.string().optional(),
+  avatar: z.string().optional(),
+});
+
+export type UserFormState = z.infer<typeof userFormSchema>;
+
 
 export const UserStatus = {
   ACTIVE : "ACTIVE",
   SUSPENDED : "SUSPENDED",
   DEACTIVATED : "DEACTIVATED",
 } as const;
-export type UserStatus = typeof UserStatus[keyof typeof UserStatus];
-
+export const userStatusSchema = z.nativeEnum(UserStatus);
+export type UserStatus = z.infer<typeof userStatusSchema>;

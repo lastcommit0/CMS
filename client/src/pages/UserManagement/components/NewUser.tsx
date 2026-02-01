@@ -1,5 +1,5 @@
 import { X, Eye, EyeOff, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,10 +7,14 @@ import { useManagers } from "@/hooks/useUsers";
 import { useRegister } from "@/hooks/useAuth";
 import { useUpdateUser } from "@/hooks/useUsers";
 import { toast } from "sonner";
+import { USER_ROLES, DESIGNATIONS, JOB_TYPES, type UserFormState, userFormSchema } from "@/types/userTypes";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { cn } from "@/lib/utils";
 
 type NewUserProps = {
   closeModal: () => void;
-  modalType: any | null;
+  userToEdit: UserFormState | null;
   onSuccess?: () => void;
 };
 
@@ -20,45 +24,49 @@ interface Manager {
   email: string;
 }
 
-export default function NewUser({ closeModal, modalType, onSuccess }: NewUserProps) {
-  const isEditMode = !!modalType;
+export default function NewUser({ closeModal, userToEdit, onSuccess }: NewUserProps) {
+  const isEditMode = !!userToEdit;
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    password: "",
-    location: "",
-    bio: "",
-    role: "" as "" | "ADMIN" | "SUB_ADMIN" | "EDITOR",
-    designation: "" as "" | "OPERATIONS_MANAGER" | "COMMUNITY_MODERATOR" | "COMPLIANCE_OFFICER" | "EDITOR_IN_CHIEF" | "MANAGING_EDITOR" | "SENIOR_EDITOR" | "COPY_EDITOR" | "SEO_EDITOR",
-    jobType: "" as "" | "FULL_TIME" | "PART_TIME" | "FREELANCE" | "INTERN",
-    managerId: "",
-    avatar: "",
+  
+  // Single source of truth using react-hook-form
+  const { register, handleSubmit: handleFormSubmit, watch, setValue, formState: { errors } } = useForm<UserFormState>({
+    resolver: zodResolver(userFormSchema),
+    defaultValues: userToEdit
+      ? {
+          firstName: userToEdit.firstName,
+          lastName: userToEdit.lastName,
+          email: userToEdit.email,
+          phone: userToEdit.phone ?? "",
+          password: "", 
+          role: userToEdit.role,
+          designation: userToEdit.designation,
+          jobType: userToEdit.jobType,
+          location: userToEdit.location ?? "",
+          bio: userToEdit.bio ?? "",
+          managerId: userToEdit.managerId ?? undefined,
+          avatar: userToEdit.avatar ?? undefined,
+        }
+      : {
+          firstName: "",
+          lastName: "",
+          email: "",
+          phone: "",
+          password: "",
+          role: "EDITOR",
+          designation: undefined,
+          jobType: undefined,
+          location: "",
+          bio: "",
+          managerId: undefined,
+          avatar: undefined,
+        },
   });
 
-  useEffect(() => {
-    if (isEditMode && modalType) {
-      const nameParts = modalType.name?.split(" ") || ["", ""];
-      setFormData({
-        firstName: nameParts[0] || "",
-        lastName: nameParts.slice(1).join(" ") || "",
-        email: modalType.email || "",
-        phone: modalType.phone || "",
-        password: "",
-        location: modalType.profile?.location || "",
-        bio: modalType.profile?.bio || "",
-        role: modalType.roles?.[0]?.role?.name || "",
-        designation: modalType.profile?.designation || "",
-        jobType: modalType.profile?.jobType || "",
-        managerId: modalType.managerId || "",
-        avatar: modalType.profile?.avatar || "",
-      });
-    }
-  }, [isEditMode, modalType]);
+  // Watch form values for dependent logic
+  const formValues = watch();
+  const currentRole = watch("role");
 
-  const { data: managers, isLoading: managersLoading } = useManagers(formData.role);
+  const { data: managers, isLoading: managersLoading } = useManagers(currentRole);
   const registerMutation = useRegister();
   const updateUserMutation = useUpdateUser();
 
@@ -68,98 +76,92 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
       value: m.id,
     })) ?? [];
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const validateForm = () => {
-    if (!formData.firstName.trim()) {
+  const validateForm = (data: UserFormState) => {
+    if (!data.firstName?.trim()) {
       toast.error("First name is required");
       return false;
     }
-    if (!formData.lastName.trim()) {
+    if (!data.lastName?.trim()) {
       toast.error("Last name is required");
       return false;
     }
-    if (!formData.email.trim()) {
+    if (!data.email?.trim()) {
       toast.error("Email is required");
       return false;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
       toast.error("Invalid email format");
       return false;
     }
-    if (!formData.phone.trim()) {
+    if (!data.phone?.trim()) {
       toast.error("Phone number is required");
       return false;
     }
-    if (!/^\+?[1-9]\d{1,14}$/.test(formData.phone)) {
+    if (!/^\+?[1-9]\d{1,14}$/.test(data.phone)) {
       toast.error("Invalid phone number format");
       return false;
     }
-    if (!isEditMode && !formData.password) {
+    if (!isEditMode && !data.password) {
       toast.error("Password is required");
       return false;
     }
-    if (formData.password && formData.password.length < 8) {
+    if (data.password && data.password.length < 8) {
       toast.error("Password must be at least 8 characters");
       return false;
     }
-    if (!formData.bio.trim()) {
+    if (!data.bio?.trim()) {
       toast.error("Profile summary is required");
       return false;
     }
-    if (!formData.role) {
+    if (!data.role) {
       toast.error("Role is required");
       return false;
     }
-    if (!formData.designation) {
+    if (!data.designation) {
       toast.error("Designation is required");
       return false;
     }
-    if (!formData.jobType) {
+    if (!data.jobType) {
       toast.error("Job type is required");
       return false;
     }
     return true;
   };
 
-  const buildPayload = () => {
+  const buildPayload = (data: UserFormState) => {
     const payload: any = {
-      firstName: formData.firstName,
-      lastName: formData.lastName, 
-      email: formData.email,
-      phone: formData.phone,
-      designation: formData.designation,
-      jobType: formData.jobType,
-      location: formData.location || undefined,
-      bio: formData.bio,
-      managerId: formData.managerId || undefined,
-      avatar: formData.avatar || undefined,
+      firstName: data.firstName,
+      lastName: data.lastName, 
+      email: data.email,
+      phone: data.phone,
+      designation: data.designation,
+      jobType: data.jobType,
+      location: data.location || undefined,
+      bio: data.bio,
+      managerId: data.managerId || undefined,
+      avatar: data.avatar || undefined,
     };
 
-    if (formData.password) {
-      payload.password = formData.password;
+    if (data.password) {
+      payload.password = data.password;
     }
 
     if (!isEditMode) {
-      payload.firstName = formData.firstName;
-      payload.lastName = formData.lastName;
-      payload.role = formData.role;
+      payload.role = data.role;
     }
 
     return payload;
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
+  const handleSubmit = async (data: UserFormState) => {
+    if (!validateForm(data)) return;
 
-    const payload = buildPayload();
+    const payload = buildPayload(data);
 
-    if (isEditMode) {
+    if (isEditMode && userToEdit?.id) {
       updateUserMutation.mutate(
         {
-          id: modalType.id,
+          id: userToEdit.id,
           data: payload,
         },
         {
@@ -189,29 +191,9 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
     }
   };
 
-  const roleOptions = [
-    { label: "Admin", value: "ADMIN" },
-    { label: "Sub Admin", value: "SUB_ADMIN" },
-    { label: "Editor", value: "EDITOR" },
-  ];
-
-  const designationOptions = [
-    { label: "Operations Manager", value: "OPERATIONS_MANAGER" },
-    { label: "Community Moderator", value: "COMMUNITY_MODERATOR" },
-    { label: "Compliance Officer", value: "COMPLIANCE_OFFICER" },
-    { label: "Editor in Chief", value: "EDITOR_IN_CHIEF" },
-    { label: "Managing Editor", value: "MANAGING_EDITOR" },
-    { label: "Senior Editor", value: "SENIOR_EDITOR" },
-    { label: "Copy Editor", value: "COPY_EDITOR" },
-    { label: "SEO Editor", value: "SEO_EDITOR" },
-  ];
-
-  const jobTypeOptions = [
-    { label: "Full Time", value: "FULL_TIME" },
-    { label: "Part Time", value: "PART_TIME" },
-    { label: "Freelance", value: "FREELANCE" },
-    { label: "Intern", value: "INTERN" },
-  ];
+  const roleOptions = USER_ROLES.map(role => ({ label: role, value: role }));
+  const designationOptions = DESIGNATIONS.map(designation => ({ label: designation, value: designation }));
+  const jobTypeOptions = JOB_TYPES.map(jobType => ({ label: jobType, value: jobType }));
 
   const isSubmitting = registerMutation.isPending || updateUserMutation.isPending;
 
@@ -223,8 +205,7 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
         className="relative min-h-screen w-[520px] max-h-screen overflow-y-auto bg-white shadow-xl z-10"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="sticky top-0 bg-white z-10 flex items-center justify-between px-6 py-4 border-b">
+        <header className="sticky top-0 bg-white z-10 flex items-center justify-between px-6 py-4 border-b">
           <h2 className="font-semibold text-[#243874] text-lg">
             {isEditMode ? "Edit User" : "Add New User"}
           </h2>
@@ -235,15 +216,15 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
           >
             <X className="w-5 h-5" />
           </button>
-        </div>
+        </header>
 
         {/* Body */}
         <div className="p-6 space-y-6">
           {/* Profile Photo */}
           <div className="flex items-center gap-4">
             <div className="size-20 object-cover rounded-full bg-blue-500 text-white flex items-center justify-center text-xl font-bold">
-              {formData.firstName[0] || "U"}
-              {formData.lastName[0] || ""}
+              {formValues.firstName?.[0] || "U"}
+              {formValues.lastName?.[0] || ""}
             </div>
             <div className="flex flex-col">
               <Button
@@ -272,8 +253,7 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
                     First Name <span className="text-red-500">*</span>
                   </label>
                   <Input
-                    value={formData.firstName}
-                    onChange={(e) => handleInputChange("firstName", e.target.value)}
+                    {...register("firstName")}
                     className="bg-gray-100 border-0 border-b-2 border-gray-200 rounded-none"
                     disabled={isSubmitting}
                   />
@@ -283,8 +263,7 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
                     Last Name <span className="text-red-500">*</span>
                   </label>
                   <Input
-                    value={formData.lastName}
-                    onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    {...register("lastName")}
                     className="bg-gray-100 border-0 border-b-2 border-gray-200 rounded-none"
                     disabled={isSubmitting}
                   />
@@ -297,8 +276,7 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
                     WhatsApp No. <span className="text-red-500">*</span>
                   </label>
                   <Input
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
+                    {...register("phone")}
                     className="bg-gray-100 border-0 border-b-2 border-gray-200 rounded-none"
                     disabled={isSubmitting}
                   />
@@ -309,9 +287,8 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
                   </label>
                   <div className="relative">
                     <Input
+                      {...register("password")}
                       type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={(e) => handleInputChange("password", e.target.value)}
                       className="bg-gray-100 border-0 border-b-2 border-gray-200 rounded-none pr-10"
                       disabled={isSubmitting}
                     />
@@ -332,8 +309,7 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
                   Location
                 </label>
                 <Input
-                  value={formData.location}
-                  onChange={(e) => handleInputChange("location", e.target.value)}
+                  {...register("location")}
                   className="bg-gray-100 border-0 border-b-2 border-gray-200 rounded-none"
                   disabled={isSubmitting}
                 />
@@ -344,9 +320,8 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
                   Email Address <span className="text-red-500">*</span>
                 </label>
                 <Input
+                  {...register("email")}
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
                   className="bg-gray-100 border-0 border-b-2 border-gray-200 rounded-none"
                   disabled={isSubmitting}
                 />
@@ -357,8 +332,7 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
                   Profile Summary <span className="text-red-500">*</span>
                 </label>
                 <textarea
-                  value={formData.bio}
-                  onChange={(e) => handleInputChange("bio", e.target.value)}
+                  {...register("bio")}
                   rows={3}
                   className="w-full bg-gray-100 border-0 border-b-2 border-gray-200 rounded-none px-3 py-2 text-sm outline-none resize-none"
                   disabled={isSubmitting}
@@ -376,16 +350,16 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
               <div className="grid grid-cols-2 gap-3">
                 <SelectField
                   label="Job Type"
-                  value={formData.jobType}
+                  value={formValues.jobType || ""}
                   options={jobTypeOptions}
-                  onChange={(value) => handleInputChange("jobType", value)}
+                  onChange={(value) => setValue("jobType", value as any)}
                   disabled={isSubmitting}
                 />
                 <SelectField
                   label="Designation"
-                  value={formData.designation}
+                  value={formValues.designation || ""}
                   options={designationOptions}
-                  onChange={(value) => handleInputChange("designation", value)}
+                  onChange={(value) => setValue("designation", value as any)}
                   disabled={isSubmitting}
                 />
               </div>
@@ -393,19 +367,19 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
               <div className="grid grid-cols-2 gap-3">
                 <SelectField
                   label="Reporting Manager"
-                  value={formData.managerId}
+                  value={formValues.managerId || ""}
                   options={managerOptions}
-                  onChange={(value) => handleInputChange("managerId", value)}
+                  onChange={(value) => setValue("managerId", value)}
                   placeholder={managersLoading ? "Loading..." : "Select manager"}
-                  disabled={isSubmitting || managersLoading || !formData.role}
+                  disabled={isSubmitting || managersLoading || !currentRole}
                 />
                 <SelectField
                   label="Select Role"
-                  value={formData.role}
+                  value={formValues.role || ""}
                   options={roleOptions}
                   onChange={(value) => {
-                    handleInputChange("role", value);
-                    handleInputChange("managerId", "");
+                    setValue("role", value as any);
+                    setValue("managerId", "");
                   }}
                   disabled={isSubmitting || isEditMode}
                 />
@@ -416,7 +390,7 @@ export default function NewUser({ closeModal, modalType, onSuccess }: NewUserPro
 
         <div className="sticky bottom-0 bg-white border-t px-6 py-4">
           <Button
-            onClick={handleSubmit}
+            onClick={handleFormSubmit(handleSubmit)}
             disabled={isSubmitting}
             className="w-full bg-[#243874] hover:bg-[#243874]/90"
           >
@@ -476,3 +450,39 @@ function SelectField({
     </div>
   );
 }
+
+export interface InputFieldProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string
+  error?: boolean
+}
+
+export const InputField = React.forwardRef<
+  HTMLInputElement,
+  InputFieldProps
+>((props, ref) => {
+  const { label, required, error, className, ...rest } = props
+
+  return (
+    <div className="w-full space-y-1.5">
+      {label && (
+        <label className="block mb-1 text-[14px] font-semibold text-[#606060]">
+          {label}
+          {required && <span className="text-destructive"> *</span>}
+        </label>
+      )}
+
+      <Input
+        ref={ref}
+        {...rest}
+        className={cn(
+          "bg-gray-100 border-0 border-b-2 border-gray-200 rounded-none",
+          error && "border-destructive focus-visible:border-destructive",
+          className
+        )}
+      />
+    </div>
+  )
+})
+
+InputField.displayName = "InputField"
