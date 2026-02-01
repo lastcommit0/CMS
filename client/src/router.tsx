@@ -20,7 +20,7 @@ import Users from "./pages/UserManagement/Users"
 import LoginLayout from "./auth/pages/LoginLayout"
 import { VideoList } from "./pages/StoryManagement/VideoList"
 import {ContactList} from "./pages/StoryManagement/ContactList"
-
+import ProtectedRoute from "./auth/ProtectedRoute"
 
 export const router = createBrowserRouter([
   {
@@ -42,91 +42,96 @@ export const router = createBrowserRouter([
     ]
   },
   {
-    path: '/user',
-    element: <App />,
+    element: <ProtectedRoute />,
     children: [
       {
-        index: true,
-        element: <Navigate to="dashboard" replace />,
-      },
-      {
-        path: 'dashboard',
-        element: <Dashboard />
-      },
-      {
-        path: 'stories',
-        element: <StoriesLayout />,
+        path: '/user',
+        element: <App />,
         children: [
-          { index: true, element: <Navigate to="add" replace /> },
           {
-            path: 'add',
-            element: <AddStory />
+            index: true,
+            element: <Navigate to="dashboard" replace />,
           },
           {
-            path: 'view',
-            element: <ViewStory />
+            path: 'dashboard',
+            element: <Dashboard />
           },
           {
-            path: 'view-schedule',
-            element: <ScheduledStory />
+            path: 'stories',
+            element: <StoriesLayout />,
+            children: [
+              { index: true, element: <Navigate to="add" replace /> },
+              {
+                path: 'add',
+                element: <AddStory />
+              },
+              {
+                path: 'view',
+                element: <ViewStory />
+              },
+              {
+                path: 'view-schedule',
+                element: <ScheduledStory />
+              },
+              {
+                path: 'pdf-list',
+                element: <PdfList />
+              },
+              { 
+                path: 'create-poll', 
+                element: <CreatePoll onClose={() => {}} /> 
+              },
+              { 
+                path: 'video-list',
+                element: <VideoList/> 
+              },
+              {
+                path: 'contact-list',
+                element: <ContactList />
+              }
+            ]
           },
           {
-            path: 'pdf-list',
-            element: <PdfList />
-          },
-          { 
-            path: 'create-poll', 
-            element: <CreatePoll onClose={() => {}} /> 
-          },
-          { 
-            path: 'video-list',
-            element: <VideoList/> 
+            path: 'priority',
+            element: <PriorityManagement />
           },
           {
-            path: 'contact-list',
-            element: <ContactList />
-          }
-        ]
-      },
-      {
-        path: 'priority',
-        element: <PriorityManagement />
-      },
-      {
-        path: 'tools',
-        element: <ToolsLayout />,
-        children: [
-          { index: true, element: <Navigate to="category-management" replace /> },
-          {
-            path: 'category-management',
-            element: <CategoryManagement />
-          },
-          {
-            path: 'meta-management',
-            element: <div>Meta Management</div>
-          },
-          {
-            path: 'download-report',
-            element: <DownloadReport/>
-          }
-        ]
-      },
-      {
-        path: 'users',
-        element: <UserLayout/>,
-        children: [
-          { index: true, element: <Navigate to="user-access-management" replace /> },
-          {
-            path: 'user-access-management',
-            element: <UserAccessManagement/>
-          },
-          {
-            path: 'admin-user-list',
-            element: <AdminUserList />
+            path: 'tools',
+            element: <ToolsLayout />,
+            children: [
+              { index: true, element: <Navigate to="category-management" replace /> },
+              {
+                path: 'category-management',
+                element: <CategoryManagement />
+              },
+              {
+                path: 'meta-management',
+                element: <div>Meta Management</div>
+              },
+              {
+                path: 'download-report',
+                element: <DownloadReport/>
+              }
+            ]
           },
           {
             path: 'users',
-            element: <Users/>
+            element: <UserLayout/>,
+            children: [
+              { index: true, element: <Navigate to="user-access-management" replace /> },
+              {
+                path: 'user-access-management',
+                element: <UserAccessManagement/>
+              },
+              {
+                path: 'admin-user-list',
+                element: <AdminUserList />
+              },
+              {
+                path: 'users',
+                element: <Users/>
+              }
+            ]
           }
         ]
       }

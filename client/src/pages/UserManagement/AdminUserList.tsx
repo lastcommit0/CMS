@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, SquarePen, Loader2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { SquarePen, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NewUser from "./components/NewUser";
 import { useUsers } from "@/hooks/useUsers";
@@ -21,10 +20,9 @@ export default function AdminUserList() {
   const users = data?.users || [];
   const pagination = data?.pagination;
 
-  // Refetch when search query changes (with debounce)
   useEffect(() => {
     const timer = setTimeout(() => {
-      setPage(1); // Reset to first page on search
+      setPage(1); 
       refetch();
     }, 500);
 
@@ -66,7 +64,6 @@ export default function AdminUserList() {
 
       <div className="border-b border-gray-200" />
 
-      {/* Table */}
       <div className="p-6">
         <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
           <div className="overflow-x-auto">
@@ -145,7 +142,6 @@ export default function AdminUserList() {
             </table>
           </div>
 
-          {/* Pagination */}
           {pagination && pagination.total > pagination.limit && (
             <div className="flex items-center justify-between px-4 py-3 border-t">
               <div className="text-sm text-gray-600">
@@ -175,11 +171,10 @@ export default function AdminUserList() {
         </div>
       </div>
 
-      {/* Modal */}
       {open && (
         <NewUser
           closeModal={closeModal}
-          modalType={editingUser}
+          userToEdit={editingUser}
           onSuccess={handleSuccess}
         />
       )}

@@ -47,7 +47,6 @@ export default function AddStory() {
   const [isSaving, setIsSaving] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
   
-  // Temporary text state for description and highlights
   const [descriptionText, setDescriptionText] = useState('');
   const [highlightsText, setHighlightsText] = useState('');
 
@@ -61,7 +60,6 @@ export default function AddStory() {
     }
   }, [form.articleTitle]);
 
-  // Convert text to EditorContent format
   const textToEditorContent = (text: string): EditorContent => {
     return {
       version: '1.0',
@@ -178,7 +176,6 @@ export default function AddStory() {
   };
 
   const prepareFormData = () => {
-    // Convert text inputs to EditorContent
     const description = textToEditorContent(descriptionText);
     const highlights = textToEditorContent(highlightsText);
 
@@ -200,17 +197,13 @@ export default function AddStory() {
       onSuccess: (response) => {
         const storyId = response.data.id;
         
-        // Upload files if present
         const uploadPromises = [];
         if (coverImage && storyId) {
           uploadPromises.push(
-            // You'll need to implement this in your API
-            // storyApi.uploadCoverImage(storyId, coverImage)
           );
         }
         if (pdfFile && storyId) {
           uploadPromises.push(
-            // storyApi.uploadPDF(storyId, pdfFile)
           );
         }
 

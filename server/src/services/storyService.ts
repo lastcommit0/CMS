@@ -106,34 +106,6 @@ export class StoryService {
     return prisma.story.delete({ where: { id } });
   }
 
-  // static async publish(id: string) {
-  //   return prisma.story.update({
-  //     where: { id },
-  //     data: { status: 'PUBLISHED' }
-  //   });
-  // }
-
-  // static async hold(id: string) {
-  //   return prisma.story.update({
-  //     where: { id },
-  //     data: { status: 'DRAFT' }
-  //   });
-  // }
-
-  // static async schedule(id: string, scheduleAt: string) {
-  //   return prisma.story.update({
-  //     where: { id },
-  //     data: { scheduleAt: new Date(scheduleAt), status: 'SCHEDULED' }
-  //   });
-  // }
-
-  // static async pending(id: string){
-  //   return prisma.story.update({
-  //     where: { id },
-  //     data: { status: 'REVIEW' }
-  //   });
-  // }
-
   static async stats(){
     const [published, pending, planned, holdReject] = await Promise.all([
       prisma.story.count({ where: { status: 'PUBLISHED' } }),
