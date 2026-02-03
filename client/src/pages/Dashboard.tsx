@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Search, Loader2 } from "lucide-react"
+import { Calendar } from "lucide-react"
+
 import { useRef } from "react"
 import { useStoryStats } from "@/hooks/useStories"
 import type { Stats } from "@/types/storyTypes"
@@ -11,6 +12,7 @@ import pending from "../assets/icons/pending.svg"
 import planned from "../assets/icons/planned.svg"
 import published from "../assets/icons/published.svg"
 import holdReject from "../assets/icons/reject.svg"
+import SearchBox from "@/components/SearchBox"
 
 
 interface NewsItem {
@@ -26,27 +28,27 @@ interface NewsItem {
 export default function Dashboard() {
   const [newsData, setNewsData] = useState<NewsItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+
   const endDateRef = useRef<HTMLInputElement>(null)
   const startDateRef = useRef<HTMLInputElement>(null)
 
-  // Filter states
   const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [startDate, setStartDate] = useState("2024-01-01")
   const [endDate, setEndDate] = useState("2024-01-30")
   const [productType, setProductType] = useState("story")
   const {
     data: stats,
     isLoading: statsLoading,
-    error: statsError,
+
   } = useStoryStats()
 
 
-  const handleGetData = async () => {
+  const handleGetData = useCallback(async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams({
-        search: searchQuery,
+        search: debouncedSearch,
         startDate,
         endDate,
         productType
@@ -61,41 +63,32 @@ export default function Dashboard() {
       const data = await response.json()
       setNewsData(data.news || [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      console.error('An error occurred:', err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [debouncedSearch, startDate, endDate, productType])
 
-  // if (loading && newsData.length === 0) {
-  //   return (
-  //     <div className="flex items-center justify-center min-h-screen">
-  //       <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-  //     </div>
-  //   )
-  // }
+  useEffect(() => {
+    handleGetData()
+  }, [handleGetData])
+
 
   return (
     <div className="w-full min-h-screen bg-white ml-36">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-4 bg-white">
-        {/* Left title */}
         <h1 className="text-[18px] font-semibold text-[#243874]">
           Dashboard
         </h1>
 
-        {/* Right controls */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
-          {/* Search */}
-          <div className="relative">
-            <Input
-              type="text"
-              placeholder="Search by Text or ID"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-[360px] h-9 bg-[#EAEAEA] rounded-[4px] pl-3 pr-9"
-            />
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-[#606060] w-4 h-4" />
-          </div>
+          <SearchBox
+            value={searchQuery}
+            onChange={(v) => setSearchQuery(v)}
+            onSearch={(v) => setDebouncedSearch(v)}
+            placeholder="Search by Text or ID"
+            className="w-[360px]"
+          />
 
           {/* Mandal */}
           <Select value="mandal" onValueChange={() => { }}>
@@ -127,79 +120,79 @@ export default function Dashboard() {
       <main className="mx-6">
 
 
-        {/* Filters Section */}
-        <div className="my-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="relative">
-              <label className="block text-sm text-[#606060] font-semibold mb-2">
-                Start Date
-              </label>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 my-6">
 
-              <Input
-                ref={startDateRef}
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-[294px] bg-[#F8F8F8] border-0 border-b-2 border-gray-200 rounded-none appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0"
-              />
-              <Calendar className="absolute right-10 top-5/7 -translate-y-1/2 text-[#000000] w-4 h-4 cursor-pointer"
-                onClick={() => startDateRef.current?.showPicker()}
-              />
-            </div>
+          <div className="relative w-full">
+            <label className="block text-sm text-[#606060] font-semibold mb-2">
+              Start Date
+            </label>
 
+            <Input
+              ref={startDateRef}
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full bg-[#F8F8F8] border-0 border-b-2 border-gray-200 rounded-none appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0"
+            />
 
-            <div className="relative w-[294px]">
-              <label className="block text-sm text-[#606060] font-semibold mb-2">
-                End Date
-              </label>
-
-              <Input
-                ref={endDateRef}
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className=" w-[294px] bg-[#F8F8F8] border-0 border-b-2  border-gray-200 rounded-none pr-10 appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0"
-              />
-
-              <Calendar
-                className="absolute right-4 top-[38px] text-[#000000] w-4 h-4 cursor-pointer"
-                onClick={() => endDateRef.current?.showPicker()}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-[#606060] font-semibold mb-2">Product Type</label>
-              <Select value={productType} onValueChange={setProductType}>
-                <SelectTrigger className="w-[294px] bg-[#F8F8F8] border-0 border-b-2 border-gray-200 rounded-none">
-                  <SelectValue placeholder="Story" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="story">Story</SelectItem>
-                  <SelectItem value="article">Article</SelectItem>
-                  <SelectItem value="news">News</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-end">
-              <Button
-                onClick={handleGetData}
-                disabled={loading}
-                className=" w-[84px] h-8 bg-[#243874]  hover:bg-[#243874]/90  text-white rounded-[4px] px-3 py-[7.5px] gap-[10px] opacity-100 flex items-center justify-center"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Loading</span>
-                  </>
-                ) : (
-                  'Get Data'
-                )}
-              </Button>
-            </div>
-
+            <Calendar
+              className="absolute right-3 top-[42px] text-[#000000] w-4 h-4 cursor-pointer"
+              onClick={() => startDateRef.current?.showPicker()}
+            />
           </div>
+
+          {/* End Date */}
+          <div className="relative w-full">
+            <label className="block text-sm text-[#606060] font-semibold mb-2">
+              End Date
+            </label>
+
+            <Input
+              ref={endDateRef}
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full bg-[#F8F8F8] border-0 border-b-2 border-gray-200 rounded-none appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0"
+            />
+
+            <Calendar
+              className="absolute right-3 top-[42px] text-[#000000] w-4 h-4 cursor-pointer"
+              onClick={() => endDateRef.current?.showPicker()}
+            />
+          </div>
+
+          {/* Product Type */}
+          <div className="w-full">
+            <label className="block text-sm text-[#606060] font-semibold mb-2">
+              Product Type
+            </label>
+
+            <Select value={productType} onValueChange={setProductType}>
+              <SelectTrigger className="w-full bg-[#F8F8F8] border-0 border-b-2 border-gray-200 rounded-none">
+                <SelectValue placeholder="Story" />
+              </SelectTrigger>
+
+              <SelectContent>
+                <SelectItem value="story">Story</SelectItem>
+                <SelectItem value="article">Article</SelectItem>
+                <SelectItem value="news">News</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Button */}
+          <div className="flex items-end w-full">
+            <Button
+              onClick={handleGetData}
+              disabled={loading}
+              className="h-8 bg-[#243874] hover:bg-[#243874]/90 text-white rounded-[4px] px-4 w-full md:w-auto"
+            >
+              Get Data
+            </Button>
+          </div>
+
         </div>
+
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

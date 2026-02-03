@@ -106,13 +106,23 @@ export class StoryService {
     return prisma.story.delete({ where: { id } });
   }
 
-  static async stats(){
-    const [published, pending, planned, holdReject] = await Promise.all([
+  static async stats() {
+    const [published, pendingReview, submitted, scheduled, rejected, unpublished, changesRequested] = await Promise.all([
       prisma.story.count({ where: { status: 'PUBLISHED' } }),
       prisma.story.count({ where: { status: 'REVIEW' } }),
+      prisma.story.count({ where: { status: 'SUBMITTED' } }),
       prisma.story.count({ where: { status: 'SCHEDULED' } }),
-      prisma.story.count({ where: { status: 'REVIEW'} })
+      prisma.story.count({ where: { status: 'REJECTED' } }),
+      prisma.story.count({ where: { status: 'UNPUBLISHED' } }),
+      prisma.story.count({ where: { status: 'CHANGES_REQUESTED' } }),
     ]);
+    console.log(published, pendingReview, submitted, scheduled, rejected, unpublished, changesRequested);
+    return {
+      published,
+      pending: pendingReview + submitted,
+      planned: scheduled,
+      holdReject: rejected + unpublished + changesRequested
+    };
   }
 
   static async addAsset(storyId: string, data: any) {

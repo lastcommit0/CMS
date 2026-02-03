@@ -11,6 +11,7 @@
     "start": "node ./dist/index.js",
     "dev": "dotenv -- tsc-watch --onSuccess \"node ./dist/index.js\"",
     "devstart": "nodemon ./bin/www",
+    "seed": "ts-node prisma/seed.ts",
     "serverstart": "DEBUG=express-locallibrary-tutorial:* npm run devstart"
   },
   "keywords": [],
@@ -55,5 +56,8 @@
     "prisma": "^7.1.0",
     "ts-node-dev": "^2.0.0",
     "tsc-watch": "^7.2.0"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   }
 }

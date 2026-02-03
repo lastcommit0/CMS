@@ -3,22 +3,33 @@ import CustomError from '../errors/customError';
 import { ErrorCode } from '../errors/errorCode';
 
 export class PriorityService {
-  static async getPriorities(sectionId?: string) {
+  static async getPriorities(sectionId?: string, search?: string) {
+    const where: any = sectionId ? { sectionId } : {};
+
+    if (search) {
+      where.story = {
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { id: { contains: search, mode: 'insensitive' } }
+        ]
+      };
+    }
+
     return prisma.storySection.findMany({
-      where: sectionId ? { sectionId } : {},
+      where,
       include: {
-        story: { 
-          select: { 
-            id: true, 
-            title: true, 
-            slug: true, 
+        story: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
             status: true,
             author: {
               select: {
                 id: true,
                 name: true,
               }
-            } 
+            }
           }
         },
         section: { select: { id: true, name: true, slug: true } }
@@ -91,7 +102,7 @@ export class PriorityService {
       }
     });
 
-    
+
   }
 
   static async getLogs(page: number, limit: number, filters: any) {

@@ -10,8 +10,8 @@ import dotenv from 'dotenv';
 import passport from './config/passport';
 import { requestLogger } from './middleware/requestLogger';
 
-dotenv.config();
 
+dotenv.config();
 const app = express();
 
 app.use(

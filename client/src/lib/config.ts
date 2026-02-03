@@ -1,1 +1,10 @@
-export const BASE_URL = '/auth';
+export const AUTH_URL = '/auth';
+export const STORY_URL = '/story';
+export const SECTION_URL = '/section';
+export const USER_URL = '/user';
+export const CATEGORY_URL = '/category';
+export const POLL_URL = '/poll';
+export const PRIORITY_URL = '/priority';
+export const EPAPER_URL = '/epapers';
+export const WORKFLOW_URL = '/status';
+export const CONTACT_URL = '/contact';

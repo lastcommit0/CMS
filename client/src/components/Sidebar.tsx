@@ -5,6 +5,8 @@ import text from "../assets/icons/text.svg";
 import tool from "../assets/icons/tool.svg";
 import huge from "../assets/icons/huge.svg";
 import { NavLink, useLocation } from "react-router-dom";
+import { useLogout } from "@/hooks/useAuth";
+
 
 const menuItems = [
   {
@@ -60,11 +62,16 @@ const menuItems = [
 
 export default function Sidebar() {
   const location = useLocation();
+  const logout = useLogout();
 
-  // Detect which parent menu is active from URL
   const activeMenu = menuItems.find(item =>
     location.pathname.startsWith(item.path)
   );
+
+
+  const handleLogout = () => {
+    logout.mutate();
+  }
 
   return (
     <div className="fixed top-0 flex min-h-screen">
@@ -96,12 +103,12 @@ export default function Sidebar() {
           </div>
         </div>
 
-        <div className="mt-auto flex flex-col items-center gap-2">
+        <button className="mt-auto flex flex-col items-center gap-2" onClick={handleLogout}>
           <div className="w-9 h-9 rounded-full bg-yellow-500 flex items-center justify-center font-bold text-black text-xs">
             SB
           </div>
           <span className="text-[10px] text-gray-400">Logout</span>
-        </div>
+        </button>
       </aside>
       <div className="bg-black">
         {activeMenu?.subItems && (

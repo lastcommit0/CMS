@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 const AUTH_KEYS = {
   all: ['auth'] as const,
   user: ['auth', 'current-user'] as const,
+  captcha: ['auth', 'captcha'] as const,
 };
 
 export const useIdentifyUser = () => {
@@ -80,6 +81,15 @@ export const useLogout = () => {
       queryClient.setQueryData(AUTH_KEYS.user, null);
       toast.success('Logged out');
       navigate('/auth');
+    },
+  });
+};
+
+export const useCaptcha = () => {
+  return useMutation({
+    mutationFn: async () => {
+      const res = await authApi.getCaptcha();
+      return res.data.data.captcha;
     },
   });
 };

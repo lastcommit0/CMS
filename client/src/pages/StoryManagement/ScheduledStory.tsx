@@ -1,27 +1,17 @@
+import { SquarePen, Loader2 } from "lucide-react"
+import { useState } from "react"
+import { useStories } from "@/hooks/useStories"
 import SearchBox from "@/components/SearchBox"
-import { SquarePen } from "lucide-react"
-import { limitWords } from "@/utils/text"
 
 
-export default function ScheduledStory(){
-  const data = [
-    {
-      id: "1998498",
-      title: "Noida Bank Employee Booked For Illicitly Transferring Rs500 Crores...",
-      published: "03-Jan-2023 | 08:53am",
-      updated: "03-Jan-2023 | 08:53am",
-      scheduleDate: "03-Jan-2023 | 08:53am",
-      scheduleBy: "Kianna Kenter",
-    },
-    {
-      id: "1998499",
-      title: "Dunki Release LIVE Updates: SRK Fans Call Film...",
-      published: "06-Jan-2023 | 09:55am",
-      updated: "06-Jan-2023 | 09:55am",
-      scheduleDate: "06-Jan-2023 | 09:55am",
-      scheduleBy: "Phillip Ekstrom",
-    },
-  ]
+export default function ScheduledStory() {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+
+  const { data: stories, isLoading, isError } = useStories({
+    status: 'SCHEDULED',
+    search: debouncedSearch
+  })
 
   return (
     <div>
@@ -30,52 +20,60 @@ export default function ScheduledStory(){
           View Schedule Story
         </div>
         <div>
-          <SearchBox value="" onChange={(v)=>{}} placeholder="Search by Text or ID" />
+          <SearchBox
+            value={searchTerm}
+            onChange={setSearchTerm}
+            onSearch={setDebouncedSearch}
+            placeholder="Search by Text or ID"
+          />
         </div>
       </header>
       <div className="border-b"></div>
       <div className="bg-white rounded-lg overflow-hidden m-4">
-        <table className="min-w-[1010px] w-full border-collapse">
-          <thead className="bg-gray-50 text-sm text-gray-600">
-            <tr className="">
-              <th className="px-4 py-3 text-left">ID</th>
-              <th className="px-4 py-3 text-left">Title</th>
-              <th className="px-4 py-3 text-left">Updated Date</th>
-              <th className="px-4 py-3 text-left">Schedule Date</th>
-              <th className="px-4 py-3 text-left">Schedule By</th>
-              <th className="px-4 py-3 text-left">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((story)=>(
-              <tr key={story.id} className="text-sm text-gray-700">
-                {/* ID */}
-                <td className="px-4 py-4">{story.id}</td>
-
-                {/* Title */}
-                <td className="px-4 py-4 max-w-md">
-                  <div className="font-medium truncate">{limitWords(story.title, 5)}</div>
-                </td>
-
-                {/* Updated Date */}
-                <td className="px-4 py-4">{story.updated}</td>
-
-                {/* Schedule Date */}
-                <td className="px-4 py-4">{story.scheduleDate}</td>
-
-                {/* Schedule By */}
-                <td className="px-4 py-4">{story.scheduleBy}</td>
-
-                {/* Action */}
-                <td className="px-4 py-4 ">
-                  <button className="text-gray-500 hover:text-black">
-                    <SquarePen size={16} />
-                  </button>
-                </td>
+        {isLoading ? (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-[#243874]" />
+          </div>
+        ) : isError ? (
+          <div className="text-center py-20 text-red-500">Failed to load scheduled stories.</div>
+        ) : (
+          <table className="min-w-[1010px] w-full border-collapse">
+            <thead className="bg-gray-50 text-sm text-gray-600">
+              <tr className="">
+                <th className="px-4 py-3 text-left">ID</th>
+                <th className="px-4 py-3 text-left">Title</th>
+                <th className="px-4 py-3 text-left">Updated Date</th>
+                <th className="px-4 py-3 text-left">Schedule Date</th>
+                <th className="px-4 py-3 text-left">Schedule By</th>
+                <th className="px-4 py-3 text-left">Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {!stories?.data || stories.data.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-10 text-gray-500">No scheduled stories found.</td>
+                </tr>
+              ) : (
+                stories.data.map((story) => (
+                  <tr key={story.id} className="text-sm text-gray-700 hover:bg-gray-50">
+                    <td className="px-4 py-4">{story.id.slice(0, 8)}...</td>
+                    <td className="px-4 py-4 max-w-md">
+                      <div className="font-medium truncate">{story.shortTitle || story.articleTitle}</div>
+                    </td>
+                    <td className="px-4 py-4">{new Date(story.updatedAt).toLocaleDateString()}</td>
+                    <td className="px-4 py-4">{story.scheduleAt ? new Date(story.scheduleAt).toLocaleDateString() : '-'}</td>
+                    <td className="px-4 py-4">{story.author?.name || 'Unknown'}</td>
+                    <td className="px-4 py-4 ">
+                      <button className="text-gray-500 hover:text-[#243874]">
+                        <SquarePen size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   )

@@ -19,43 +19,43 @@ export type InlineMark =
 
 export type StoryBlock =
   | {
-      id: string;
-      type: 'paragraph';
-      data: {
-        text: string;
-        marks?: InlineMark[];
-      };
-    }
-  | {
-      id: string;
-      type: 'heading';
-      data: {
-        level: 1 | 2 | 3 | 4 | 5 | 6;
-        text: string;
-      };
-    }
-  | {
-      id: string;
-      type: 'image';
-      data: {
-        assetId: string;
-        caption?: string;
-      };
-    }
-  | {
-      id: string;
-      type: 'video';
-      data: {
-        assetId: string;
-      };
-    }
-  | {
-      id: string;
-      type: 'pdf';
-      data: {
-        assetId: string;
-      };
+    id: string;
+    type: 'paragraph';
+    data: {
+      text: string;
+      marks?: InlineMark[];
     };
+  }
+  | {
+    id: string;
+    type: 'heading';
+    data: {
+      level: 1 | 2 | 3 | 4 | 5 | 6;
+      text: string;
+    };
+  }
+  | {
+    id: string;
+    type: 'image';
+    data: {
+      assetId: string;
+      caption?: string;
+    };
+  }
+  | {
+    id: string;
+    type: 'video';
+    data: {
+      assetId: string;
+    };
+  }
+  | {
+    id: string;
+    type: 'pdf';
+    data: {
+      assetId: string;
+    };
+  };
 
 export interface EditorContent {
   version: '1.0';
@@ -95,7 +95,7 @@ export interface StoryFormState {
 
   enablePaywall: boolean;
   schedulePost: boolean;
-  scheduleAt?: string; 
+  scheduleAt?: string;
 }
 
 export interface Story {
@@ -146,7 +146,7 @@ export interface Story {
   assets?: StoryAsset[];
 }
 
-export interface CreateStoryRequest extends StoryFormState {}
+export interface CreateStoryRequest extends StoryFormState { }
 
 export interface UpdateStoryRequest extends Partial<StoryFormState> {
   id: string;
@@ -175,8 +175,10 @@ export interface PaginatedResponse<T> {
 }
 
 export interface StoryStats {
-  draft: number;
-  review: number;
   published: number;
-  scheduled: number;
+  pending: number;
+  planned: number;
+  holdReject: number;
 }
+
+export type Stats = StoryStats;

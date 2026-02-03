@@ -3,7 +3,8 @@ import { PriorityService } from '../services/priorityService';
 import { updatePrioritySchema, bulkPrioritySchema } from '../validators/prioritySchema';
 
 export const getPriorities = async (req: Request, res: Response) => {
-  const data = await PriorityService.getPriorities(req.query.sectionId as string);
+  const { sectionId, search } = req.query;
+  const data = await PriorityService.getPriorities(sectionId as string, search as string);
   res.json({ success: true, data });
 };
 

@@ -45,28 +45,27 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 });
 
 
-apiClient.interceptors.response.use(
-    (res) => res,
-    async (error: AxiosError) => {
-        const originalRequest = error.config as InternalAxiosRequestConfig & {
-            _retry?: boolean;
-        };
+apiClient.interceptors.response.use((res) => res, async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+        _retry?: boolean;
+    };
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh')) {
+        originalRequest._retry = true;
 
-            try {
-                const newToken = await refreshAccessToken();
-                originalRequest.headers.Authorization = `Bearer ${newToken}`;
-                return apiClient(originalRequest);
-            } catch {
-                accessTokenStore.clear();
-                window.dispatchEvent(new CustomEvent('auth-expired'));
-            }
+        try {
+            console.log("Refreshing access token...");
+            const newToken = await refreshAccessToken();
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            return apiClient(originalRequest);
+        } catch {
+            accessTokenStore.clear();
+            window.dispatchEvent(new CustomEvent('auth-expired'));
         }
-
-        return Promise.reject(new HttpError(error));
     }
+    console.log('API Error going:', error);
+    return Promise.reject(new HttpError(error));
+}
 );
 
 export default apiClient;

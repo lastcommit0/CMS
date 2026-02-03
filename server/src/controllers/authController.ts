@@ -5,6 +5,8 @@ import CustomError from "../errors/customError";
 import { ErrorCode } from "../errors/errorCode";
 
 
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+
 
 export const register = async (req: Request, res: Response) => {
   if (!req.user || !req.user.role || req.user.role.length === 0) {
@@ -30,12 +32,11 @@ export const register = async (req: Request, res: Response) => {
   });
 };
 
+
 export const googleCallback = async (req: Request, res: Response) => {
   try {
     if (!req.user) {
-      return res.redirect(
-        `${process.env.CLIENT_URL}/auth?error=oauth_failed`
-      );
+      return res.redirect(`${CLIENT_URL}/auth?error=oauth_failed`);
     }
 
     const googleUser = req.user as any;
@@ -48,31 +49,39 @@ export const googleCallback = async (req: Request, res: Response) => {
       avatar: googleUser.photos?.[0]?.value,
     };
 
-    const result = await AuthService.handleOAuthLogin(payload, req);
+    const { accessToken, refreshToken } =
+      await AuthService.handleOAuthLogin(payload, req);
 
-    res.cookie('refreshToken', result.refreshToken, {
+    res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return res.redirect(
-      `${process.env.CLIENT_URL}/auth/callback?token=${result.accessToken}`
+      `${CLIENT_URL}/auth/callback?token=${encodeURIComponent(accessToken)}`
     );
+
   } catch (error) {
-    console.error('Google OAuth Error:', error);
-    return res.redirect(
-      `${process.env.CLIENT_URL}/auth?error=oauth_error`
-    );
+    console.error("Google OAuth Error:", error);
+    return res.redirect(`${CLIENT_URL}/auth?error=oauth_error`);
   }
 };
 
+
 export const login = async (req: Request, res: Response) => {
   const { identifier, password, captcha } = loginSchema.parse(req.body);
-  const result = await AuthService.loginUser(identifier, password, '', req);
+  const result = await AuthService.loginUser(identifier, password, captcha || '', req);
 
   const { passwordHash, ...userData } = result.user;
+
+  res.cookie("refreshToken", result.refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
 
   res.status(200).json({
     success: true,
@@ -95,6 +104,13 @@ export const refresh = async (req: Request, res: Response) => {
     });
   }
   const token = await AuthService.refreshUser(refreshToken, req);
+
+  res.cookie("refreshToken", token.refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
 
   res.status(200).json({
     success: true,
@@ -129,10 +145,18 @@ export const logoutAll = async (req: Request, res: Response) => {
 }
 
 export const identify = async (req: Request, res: Response) => {
-    const {identifier} = identifySchema.parse(req.body);
-    const result = await AuthService.identifyUser(identifier);
-    res.status(200).json({
-        success: true,
-        data: result
-    })
+  const { identifier } = identifySchema.parse(req.body);
+  const result = await AuthService.identifyUser(identifier, req);
+  res.status(200).json({
+    success: true,
+    data: result
+  })
+}
+
+export const getCaptcha = async (req: Request, res: Response) => {
+  const captcha = await AuthService.generateCaptcha(req);
+  res.status(200).json({
+    success: true,
+    data: { captcha }
+  })
 }

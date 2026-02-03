@@ -2,7 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom"
 import App from "./App"
 import Dashboard from "./pages/Dashboard"
 import AddStory from "./pages/StoryManagement/AddStory"
-import PdfList from "./pages/StoryManagement/PdfList"
+import {PdfList} from "./pages/StoryManagement/PdfList"
 import { StoriesLayout } from "./pages/StoryManagement/StoriesLayout"
 import PriorityManagement from "./pages/PriorityManagement"
 import { ToolsLayout } from "./pages/Tools/ToolsLayout"
@@ -21,6 +21,7 @@ import LoginLayout from "./auth/pages/LoginLayout"
 import { VideoList } from "./pages/StoryManagement/VideoList"
 import {ContactList} from "./pages/StoryManagement/ContactList"
 import ProtectedRoute from "./auth/ProtectedRoute"
+import OAuthCallback from "./auth/OauthCallback"
 
 export const router = createBrowserRouter([
   {
@@ -38,7 +39,9 @@ export const router = createBrowserRouter([
       {
         path: 'login',
         element: <LoginPage2 />
-      }
+      },
+      { path: "auth/callback", element: <OAuthCallback /> }
+
     ]
   },
   {
@@ -79,7 +82,7 @@ export const router = createBrowserRouter([
               },
               { 
                 path: 'create-poll', 
-                element: <CreatePoll onClose={() => {}} /> 
+                element: <CreatePoll /> 
               },
               { 
                 path: 'video-list',

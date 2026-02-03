@@ -1,34 +1,15 @@
-import { Search } from "lucide-react"
-import { Pencil } from "lucide-react"
-
-const data = [
-  {
-    id: "1998498",
-    author: "Kianna Kenter",
-    avatar: "https://i.pravatar.cc/40?img=1",
-    title: "Noida Bank Employee Booked For Illicitly Transferring Rs500 Crores...",
-    published: "03-Jan-2023 | 08:53am",
-    updated: "03-Jan-2023 | 08:53am",
-    approvedBy: "Kianna Kenter",
-    status: "Published",
-    priority: 1,
-  },
-  {
-    id: "1998499",
-    author: "Phillip Ekstrom",
-    avatar: "https://i.pravatar.cc/40?img=2",
-    title: "Dunki Release LIVE Updates: SRK Fans Call Film...",
-    published: "06-Jan-2023 | 09:55am",
-    updated: "06-Jan-2023 | 09:55am",
-    approvedBy: "Phillip Ekstrom",
-    status: "Unpublished",
-    priority: 0,
-  },
-]
-
+import { Search, Loader2 } from "lucide-react"
+import { useStories } from "@/hooks/useStories"
+import { useState } from "react"
+import { format } from "date-fns"
 
 export default function ViewStory() {
-
+  const [searchTerm, setSearchTerm] = useState("")
+  const { data: stories, isLoading, isError } = useStories({
+    search: searchTerm,
+    limit: 10,
+    page: 1
+  })
 
   return (
     <div className="">
@@ -41,6 +22,8 @@ export default function ViewStory() {
                 type="text"
                 placeholder="Search by Text or ID"
                 className="flex-1 px-3 py-2 text-[14px] outline-none placeholder-[#606060]"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
               <button
                 type="button"
@@ -55,67 +38,84 @@ export default function ViewStory() {
       <div className="border-b"></div>
       <div className="bg-white rounded-lg shadow-sm overflow-hidden m-4">
         <div className="overflow-x-auto">
-          <table className="min-w-[1010px] w-full border-collapse">
-            <thead className="bg-gray-50 text-sm text-gray-600">
-              <tr>
-                <th className="px-4 py-3 text-left">ID</th>
-                <th className="px-4 py-3 text-left">Author</th>
-                <th className="px-4 py-3 text-left">Title</th>
-                <th className="px-4 py-3 text-left">Approved By</th>
-                <th className="px-4 py-3 text-left">Status</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y">
-              {data.map((item) => (
-                <tr key={item.id} className="text-sm text-gray-700">
-                  {/* ID */}
-                  <td className="px-4 py-4">{item.id}</td>
-
-                  {/* Author */}
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-2">
-                      <img
-                        src={item.avatar}
-                        alt={item.author}
-                        className="h-8 w-8 rounded-full"
-                      />
-                      <span>{item.author}</span>
-                    </div>
-                  </td>
-
-                  {/* Title */}
-                  <td className="px-4 py-4 max-w-md">
-                    <div className="font-medium truncate">{item.title}</div>
-                    <div className="flex flex-row gap-1">
-                      <div className="text-[12px] text-gray-500 flex flex-row items-center">
-                        Published On :  <span className="text-black/80 text-[10px] ml-1">{item.published}</span>
-                      </div>
-                      <div className="text-[12px] text-gray-500">
-                        Updated On : <span className="text-black/80 text-[10px] ml-1">{item.published}</span>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Approved By */}
-                  <td className="px-4 py-4">{item.approvedBy}</td>
-
-                  {/* Status */}
-                  <td className="px-4 py-4 text-start">
-                    <span
-                      className={`inline-flex items-center gap-1 bg-white border rounded-lg px-3 py-1 text-xs font-medium
-                    ${item.status === "Published"
-                          ? " text-green-700"
-                          : " text-red-700"
-                        }`}
-                    >
-                      ● {item.status}
-                    </span>
-                  </td>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-[#243874]" />
+            </div>
+          ) : isError ? (
+            <div className="text-center py-20 text-red-500 font-medium">
+              Failed to load stories. Please try again.
+            </div>
+          ) : (
+            <table className="min-w-[1010px] w-full border-collapse">
+              <thead className="bg-gray-50 text-sm text-gray-600">
+                <tr>
+                  <th className="px-4 py-3 text-left">ID</th>
+                  <th className="px-4 py-3 text-left">Author</th>
+                  <th className="px-4 py-3 text-left">Title</th>
+                  <th className="px-4 py-3 text-left">Approved By</th>
+                  <th className="px-4 py-3 text-left">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+
+              <tbody className="divide-y">
+                {stories?.data.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-10 text-gray-500">
+                      No stories found.
+                    </td>
+                  </tr>
+                ) : (
+                  stories?.data.map((item: any) => (
+                    <tr key={item.id} className="text-sm text-gray-700">
+                      <td className="px-4 py-4">{item.id.slice(0, 8)}...</td>
+
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-[#243874] font-bold">
+                            {(item.author?.name || 'A')[0]}
+                          </div>
+                          <span>{item.author?.name || 'Anonymous'}</span>
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-4 max-w-md">
+                        <div className="font-medium truncate">{item.articleTitle}</div>
+                        <div className="flex flex-row gap-1">
+                          <div className="text-[12px] text-gray-500 flex flex-row items-center">
+                            Published On : <span className="text-black/80 text-[10px] ml-1">
+                              {item.createdAt ? format(new Date(item.createdAt), "dd-MMM-yyyy | hh:mm a") : 'N/A'}
+                            </span>
+                          </div>
+                          <div className="text-[12px] text-gray-500">
+                            Updated On : <span className="text-black/80 text-[10px] ml-1">
+                              {item.updatedAt ? format(new Date(item.updatedAt), "dd-MMM-yyyy | hh:mm a") : 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-4">{item.mandal || 'N/A'}</td>
+
+                      <td className="px-4 py-4 text-start">
+                        <span
+                          className={`inline-flex items-center gap-1 bg-white border rounded-lg px-3 py-1 text-xs font-medium
+                        ${item.status === "PUBLISHED"
+                              ? " text-green-700 border-green-200"
+                              : item.status === "DRAFT"
+                                ? " text-gray-600 border-gray-200"
+                                : " text-red-700 border-red-200"
+                            }`}
+                        >
+                          ● {item.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

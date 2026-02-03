@@ -6,9 +6,7 @@ import TwoCol from "./ui/TwoCol";
 export default function AddNewUser() {
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30">
-      {/* DRAWER */}
       <div className="h-full w-full max-w-[510px] bg-white shadow-xl overflow-y-auto">
-        {/* HEADER */}
         <div className="flex items-center justify-between border-b px-6 py-4">
           <h2 className="text-lg font-semibold text-blue-700">Add New User</h2>
           <button
@@ -95,7 +93,7 @@ function Input({
   label,
   required = false,
   type = "text",
-}: InputProps){
+}: InputProps) {
   return (
     <div>
       <label className="mb-1 block text-sm text-gray-600">
@@ -119,7 +117,7 @@ interface SelectProps {
 function Select({
   label,
   required = false,
-}: SelectProps){
+}: SelectProps) {
   return (
     <div>
       <label className="mb-1 block text-sm text-gray-600">

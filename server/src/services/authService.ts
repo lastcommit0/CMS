@@ -15,7 +15,7 @@ interface OAuthPayload {
 
 export const AuthService = {
 
-  async identifyUser(identifier: string) {
+  async identifyUser(identifier: string, req: any) {
     const user = await prisma.user.findFirst({
       where: {
         OR: [{ email: identifier }, { phone: identifier }],
@@ -33,11 +33,21 @@ export const AuthService = {
     }
 
     const requireCaptcha = user.failedLoginAttempts >= 2;
+    let captcha = "";
+
+    if (requireCaptcha) {
+      const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+      for (let i = 0; i < 5; i++) {
+        captcha += chars[Math.floor(Math.random() * chars.length)];
+      }
+      req.session.captcha = captcha;
+    }
 
     return {
       userId: user.id,
       username: user.email,
       requireCaptcha,
+      captcha: requireCaptcha ? captcha : undefined,
     };
   },
 
@@ -337,5 +347,15 @@ export const AuthService = {
       where: { userId: req.user.id, revoked: false },
       data: { revoked: true },
     });
+  },
+
+  async generateCaptcha(req: any) {
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let captcha = "";
+    for (let i = 0; i < 5; i++) {
+      captcha += chars[Math.floor(Math.random() * chars.length)];
+    }
+    req.session.captcha = captcha;
+    return captcha;
   }
 }

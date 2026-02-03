@@ -24,6 +24,7 @@ export interface Identify {
   userId: string;
   username: string;
   requireCaptcha: boolean;
+  captcha?: string;
 }
 
 export interface User {

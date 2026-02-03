@@ -4,10 +4,11 @@ import pdf from "../../assets/icons/pdf.svg"
 import type { StoryFormState, EditorContent } from "@/types/storyTypes"
 import React, { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useCreateStory } from "@/hooks/useStories"
+import { useCreateStory, useUploadCoverImage, useUploadPDF } from "@/hooks/useStories"
 import { toast } from "sonner"
 import { Loader2, X } from "lucide-react"
 import RichTextEditor from "@/components/RichTextEditor/RichTextEditor"
+import { storyApi } from "@/services/storyService"
 
 const initialStoryFormState: StoryFormState = {
   type: 'STORY',
@@ -39,6 +40,10 @@ const initialStoryFormState: StoryFormState = {
 export default function AddStory() {
   const navigate = useNavigate();
   const createStoryMut = useCreateStory();
+  const uploadCoverMut = useUploadCoverImage();
+  const uploadPdfMut = useUploadPDF();
+  const draftHydratedRef = useRef(false);
+  const draftSaveTimerRef = useRef<number | null>(null);
   const [form, setForm] = useState<StoryFormState>(initialStoryFormState);
   const [tagInput, setTagInput] = useState('');
   const [coverImage, setCoverImage] = useState<File | null>(null);
@@ -46,9 +51,71 @@ export default function AddStory() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
-  
+
   const [descriptionText, setDescriptionText] = useState('');
   const [highlightsText, setHighlightsText] = useState('');
+
+  const DRAFT_STORAGE_KEY = 'cms:add-story-draft:v1';
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (!stored) {
+        draftHydratedRef.current = true;
+        return;
+      }
+      const parsed = JSON.parse(stored) as {
+        form?: StoryFormState;
+        descriptionText?: string;
+        highlightsText?: string;
+        tagInput?: string;
+      };
+      if (parsed.form) setForm(parsed.form);
+      if (typeof parsed.descriptionText === 'string') setDescriptionText(parsed.descriptionText);
+      if (typeof parsed.highlightsText === 'string') setHighlightsText(parsed.highlightsText);
+      if (typeof parsed.tagInput === 'string') setTagInput(parsed.tagInput);
+    } catch (error) {
+      console.warn('Failed to restore draft from storage', error);
+    } finally {
+      draftHydratedRef.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!draftHydratedRef.current) return;
+
+    if (draftSaveTimerRef.current) {
+      window.clearTimeout(draftSaveTimerRef.current);
+    }
+
+    draftSaveTimerRef.current = window.setTimeout(() => {
+      try {
+        const payload = {
+          form,
+          descriptionText,
+          highlightsText,
+          tagInput,
+        };
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(payload));
+      } catch (error) {
+        console.warn('Failed to save draft to storage', error);
+      }
+    }, 300);
+
+    return () => {
+      if (draftSaveTimerRef.current) {
+        window.clearTimeout(draftSaveTimerRef.current);
+      }
+    };
+  }, [form, descriptionText, highlightsText, tagInput]);
+
+  const clearDraftStorage = () => {
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch (error) {
+      console.warn('Failed to clear draft storage', error);
+    }
+  };
 
   useEffect(() => {
     if (form.articleTitle) {
@@ -194,31 +261,25 @@ export default function AddStory() {
     const payload = prepareFormData();
 
     createStoryMut.mutate(payload, {
-      onSuccess: (response) => {
+      onSuccess: async (response: any) => {
         const storyId = response.data.id;
-        
-        const uploadPromises = [];
-        if (coverImage && storyId) {
-          uploadPromises.push(
-          );
-        }
-        if (pdfFile && storyId) {
-          uploadPromises.push(
-          );
-        }
 
-        Promise.all(uploadPromises)
-          .then(() => {
-            toast.success('Story saved as draft');
-            navigate('/user/stories/view');
-          })
-          .catch((error) => {
-            toast.error('Failed to upload files');
-            console.error(error);
-          })
-          .finally(() => {
-            setIsSaving(false);
-          });
+        try {
+          if (coverImage && storyId) {
+            await storyApi.uploadCoverImage(storyId, coverImage);
+          }
+          if (pdfFile && storyId) {
+            await storyApi.uploadPDF(storyId, pdfFile);
+          }
+          clearDraftStorage();
+          toast.success('Story saved as draft');
+          navigate('/user/stories/view');
+        } catch (error) {
+          toast.error('Failed to upload files');
+          console.error(error);
+        } finally {
+          setIsSaving(false);
+        }
       },
       onError: (error) => {
         toast.error('Failed to save draft');
@@ -238,34 +299,25 @@ export default function AddStory() {
     };
 
     createStoryMut.mutate(payload, {
-      onSuccess: (response) => {
+      onSuccess: async (response: any) => {
         const storyId = response.data.id;
-        
-        // Upload files if present
-        const uploadPromises = [];
-        if (coverImage && storyId) {
-          uploadPromises.push(
-            // storyApi.uploadCoverImage(storyId, coverImage)
-          );
-        }
-        if (pdfFile && storyId) {
-          uploadPromises.push(
-            // storyApi.uploadPDF(storyId, pdfFile)
-          );
-        }
 
-        Promise.all(uploadPromises)
-          .then(() => {
-            toast.success('Story submitted successfully');
-            navigate('/user/stories/view');
-          })
-          .catch((error) => {
-            toast.error('Failed to upload files');
-            console.error(error);
-          })
-          .finally(() => {
-            setIsSaving(false);
-          });
+        try {
+          if (coverImage && storyId) {
+            await storyApi.uploadCoverImage(storyId, coverImage);
+          }
+          if (pdfFile && storyId) {
+            await storyApi.uploadPDF(storyId, pdfFile);
+          }
+          clearDraftStorage();
+          toast.success('Story submitted successfully');
+          navigate('/user/stories/view');
+        } catch (error) {
+          toast.error('Failed to upload files');
+          console.error(error);
+        } finally {
+          setIsSaving(false);
+        }
       },
       onError: (error) => {
         toast.error('Failed to submit story');
@@ -283,7 +335,7 @@ export default function AddStory() {
           <h1 className="text-lg font-semibold text-[#243874]">New Article</h1>
 
           <div className="flex gap-3">
-            <button 
+            <button
               className="rounded border bg-gray-100 px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleSaveDraft}
               disabled={createStoryMut.isPending || isSaving}
@@ -297,7 +349,7 @@ export default function AddStory() {
                 'Save as Draft'
               )}
             </button>
-            <button 
+            <button
               className="rounded bg-[#243874] px-4 py-2 text-sm text-white disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleSubmit}
               disabled={createStoryMut.isPending || isSaving}
@@ -315,7 +367,7 @@ export default function AddStory() {
         </div>
 
         <div className="border-b border-gray-200" />
-        
+
         {/* Type */}
         <div className="my-6 flex flex-wrap items-center gap-6 text-sm">
           <label className="flex items-center gap-2">
@@ -358,12 +410,12 @@ export default function AddStory() {
                 <span className="px-3 py-2 text-sm text-gray-600 border-r">
                   https://
                 </span>
-                <input 
+                <input
                   className="flex-1 bg-transparent px-3 py-2 text-sm outline-none"
                   value={form.storyUrl}
                   onChange={(e) => handleInputChange('storyUrl', e.target.value)}
                 />
-                <button 
+                <button
                   className="px-3 text-gray-500 hover:text-gray-700"
                   type="button"
                   onClick={handleCopyUrl}
@@ -379,7 +431,7 @@ export default function AddStory() {
                 <label className="custom-label">
                   Short Title <span className="text-red-500">*</span>
                 </label>
-                <input 
+                <input
                   className="custom-input"
                   value={form.shortTitle}
                   onChange={(e) => handleInputChange('shortTitle', e.target.value)}
@@ -390,7 +442,7 @@ export default function AddStory() {
                 <label className="custom-label">
                   Article Title <span className="text-red-500">*</span>
                 </label>
-                <input 
+                <input
                   className="custom-input"
                   value={form.articleTitle}
                   onChange={(e) => handleInputChange('articleTitle', e.target.value)}
@@ -404,8 +456,8 @@ export default function AddStory() {
             <label className="custom-label">
               Slug Intro <span className="text-red-500">*</span>
             </label>
-            <textarea 
-              rows={3} 
+            <textarea
+              rows={3}
               className="custom-input resize-none"
               value={form.slugIntro}
               onChange={(e) => handleInputChange('slugIntro', e.target.value)}
@@ -419,7 +471,7 @@ export default function AddStory() {
                 Topic Tags (1–2 in English) <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <input 
+                <input
                   className="custom-input pr-10"
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
@@ -429,7 +481,6 @@ export default function AddStory() {
                       handleAddTag();
                     }
                   }}
-                  placeholder="Type and press Enter"
                 />
                 <button
                   type="button"
@@ -462,11 +513,11 @@ export default function AddStory() {
           {/* Description */}
           <div>
             <label className="custom-label">Description</label>
-              <RichTextEditor
-                value={descriptionText}
-                onChange={setDescriptionText}
-                rows={8}
-              />
+            <RichTextEditor
+              value={descriptionText}
+              onChange={setDescriptionText}
+              rows={8}
+            />
           </div>
 
           {/* SEO */}
@@ -475,12 +526,11 @@ export default function AddStory() {
               <label className="custom-label">
                 Meta Keywords <span className="text-red-500">*</span>
               </label>
-              <textarea 
-                rows={3} 
+              <textarea
+                rows={3}
                 className="custom-input resize-none w-full"
                 value={form.seo.metaKeywords}
                 onChange={(e) => handleSEOChange('metaKeywords', e.target.value)}
-                placeholder="keyword1, keyword2, keyword3"
               />
             </div>
 
@@ -488,12 +538,11 @@ export default function AddStory() {
               <label className="custom-label">
                 Meta Description <span className="text-red-500">*</span>
               </label>
-              <textarea 
-                rows={3} 
+              <textarea
+                rows={3}
                 className="custom-input resize-none w-full"
                 onChange={(e) => handleSEOChange('metaDescription', e.target.value)}
                 value={form.seo.metaDescription}
-                placeholder="SEO description for search engines"
               />
             </div>
           </div>
@@ -545,8 +594,8 @@ export default function AddStory() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col">
                   <label className="custom-label">District</label>
-                  <input 
-                    className="custom-input" 
+                  <input
+                    className="custom-input"
                     value={form.district || ''}
                     onChange={(e) => handleInputChange('district', e.target.value)}
                   />
@@ -555,8 +604,8 @@ export default function AddStory() {
                   <label className="custom-label">
                     Mandal <span className="text-red-500">*</span>
                   </label>
-                  <input 
-                    className="custom-input" 
+                  <input
+                    className="custom-input"
                     value={form.mandal}
                     onChange={(e) => handleInputChange('mandal', e.target.value)}
                   />
@@ -566,16 +615,16 @@ export default function AddStory() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col">
                   <label className="custom-label">Photo Caption</label>
-                  <input 
-                    className="custom-input" 
+                  <input
+                    className="custom-input"
                     value={form.photoCaption || ''}
                     onChange={(e) => handleInputChange('photoCaption', e.target.value)}
                   />
                 </div>
                 <div className="flex flex-col">
                   <label className="custom-label">Photo Credit</label>
-                  <input 
-                    className="custom-input" 
+                  <input
+                    className="custom-input"
                     value={form.photoCredit || ''}
                     onChange={(e) => handleInputChange('photoCredit', e.target.value)}
                   />
@@ -585,22 +634,22 @@ export default function AddStory() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col">
                   <label className="custom-label">Author</label>
-                  <input 
-                    className="custom-input" 
+                  <input
+                    className="custom-input"
                     value={form.author}
                     onChange={(e) => handleInputChange('author', e.target.value)}
                   />
                 </div>
                 <div className="flex flex-col">
                   <label className="custom-label">Place</label>
-                  <input 
+                  <input
                     className="custom-input"
                     value={form.place || ''}
                     onChange={(e) => handleInputChange('place', e.target.value)}
                   />
                 </div>
               </div>
-              
+
               <div className="flex flex-col">
                 <label className="custom-label">Highlights</label>
                 <RichTextEditor
@@ -615,7 +664,7 @@ export default function AddStory() {
                   <p className="mb-1 font-semibold">Google Bot</p>
                   <div className="flex gap-4">
                     <label className="flex gap-2">
-                      <input 
+                      <input
                         type="radio"
                         name="googleBot"
                         checked={form.seo.googleBot === 'ALLOW'}
@@ -623,7 +672,7 @@ export default function AddStory() {
                       /> Allow
                     </label>
                     <label className="flex gap-2">
-                      <input 
+                      <input
                         type="radio"
                         name="googleBot"
                         checked={form.seo.googleBot === 'DISALLOW'}

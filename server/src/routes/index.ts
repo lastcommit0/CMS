@@ -12,12 +12,14 @@ import searchRoute from "./searchRoute";
 import epaperRoute from "./epaperRoute";
 import storageRoute from "./storageRoute";
 import worklowRoute from "./workflowRoute";
+import contactRoute from "./contactRoute";
+import dashboardRoute from "./dashboardRoute";
 import { requireAuth } from "../middleware/authMiddleware";
 import { apiLimiter, authLimiter } from "../middleware/rateLimiter";
 
 const router = Router();
 
-router.use('/auth', authLimiter, authRoute);
+router.use('/auth', authRoute);
 
 router.use('/story', apiLimiter, requireAuth, storyRoute);
 router.use('/section', apiLimiter, requireAuth, storySectionRoute);
@@ -31,5 +33,7 @@ router.use('/storage', apiLimiter, requireAuth, storageRoute);
 router.use('/search', apiLimiter, requireAuth, searchRoute);
 router.use('/epapers', apiLimiter, requireAuth, epaperRoute);
 router.use('/status', apiLimiter, requireAuth, worklowRoute);
+router.use('/contact', apiLimiter, requireAuth, contactRoute);
+router.use('/dashboard', apiLimiter, dashboardRoute);
 
 export default router;

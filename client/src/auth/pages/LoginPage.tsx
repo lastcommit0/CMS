@@ -13,9 +13,8 @@ import { useIdentifyUser } from "@/hooks/useAuth"
 export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [identifier, setIdentifier] = useState('');
-  const [loading, setLoading] = useState(false)
   const identifyMutation = useIdentifyUser();
-  const router = useNavigate()
+  const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,16 +23,20 @@ export default function LoginPage() {
       return
     }
     try {
-      setLoading(true)
       const data = await identifyMutation.mutateAsync(identifier);
 
-      router(
-        `/login?identifier=${data.username}&captcha=${data.requireCaptcha}`
+      navigate(
+        `/login?identifier=${data.username}&captcha=${data.requireCaptcha}${data.captcha ? `&captchaVal=${data.captcha}` : ""}`
       );
     } catch (err) {
       console.log(err)
     }
   }
+
+  const handleOauthLogin = () => {
+    window.location.href = "http://localhost:3000/api/auth/google";
+  };
+
 
   return (
     <div className="relative min-h-screen w-full bg-[#f5f5f0] flex flex-col">
@@ -94,6 +97,7 @@ export default function LoginPage() {
 
             <div className="flex justify-center gap-4">
               <button
+                onClick={()=> handleOauthLogin()}
                 type="button"
                 className="w-14 h-10 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                 aria-label="Sign in with Google"

@@ -21,15 +21,44 @@ const RichTextEditor = ({
     onChange,
     rows = 8,
     className = "",
-    placeholder = "Type here..."
 }: RichTextEditorProps) => {
     const editorRef = useRef<HTMLDivElement>(null);
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [showHighlightPicker, setShowHighlightPicker] = useState(false);
     const isInternalUpdate = useRef(false);
+    const savedSelectionRef = useRef<Range | null>(null);
 
-    const textColors = ["#000000", "#FF0000", "#0000FF", "#008000", "#FF6600", "#800080"];
-    const highlightColors = ["#FFFF00", "#00FF00", "#00FFFF", "#FF00FF", "#FFA500", "#FFB6C1"];
+    // Save selection when focus leaves the editor
+    const saveSelection = () => {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+            savedSelectionRef.current = selection.getRangeAt(0).cloneRange();
+        }
+    };
+
+    // Restore selection before applying formatting
+    const restoreSelection = () => {
+        if (savedSelectionRef.current && editorRef.current) {
+            const selection = window.getSelection();
+            if (selection) {
+                selection.removeAllRanges();
+                selection.addRange(savedSelectionRef.current);
+            }
+        }
+    };
+
+    const textColors = [
+        "#000000", "#444444", "#666666", "#999999", "#cccccc", "#eeeeee", "#f3f3f3", "#ffffff",
+        "#ff0000", "#ff9900", "#ffff00", "#00ff00", "#00ffff", "#0000ff", "#9900ff", "#ff00ff",
+        "#f44336", "#e91e63", "#9c27b0", "#673ab7", "#3f51b5", "#2196f3", "#03a9f4", "#00bcd4",
+        "#009688", "#4caf50", "#8bc34a", "#cddc39", "#ffeb3b", "#ffc107", "#ff9800", "#ff5722",
+        "#795548", "#9e9e9e", "#607d8b"
+    ];
+    const highlightColors = [
+        "#ffff00", "#00ff00", "#00ffff", "#ff00ff", "#0000ff", "#ff0000",
+        "#bfff00", "#7fffd4", "#e6e6fa", "#ffe4e1", "#f0e68c", "#d3d3d3",
+        "#ffa500", "#ffb6c1", "#98fb98", "#afeeee", "#f5f5dc", "#ffffff"
+    ];
 
     useEffect(() => {
         if (editorRef.current && !isInternalUpdate.current) {
@@ -58,14 +87,20 @@ const RichTextEditor = ({
     };
 
     const applyColor = (color: string) => {
-        console.log('Applying text color:', color);
-        executeCommand('foreColor', color);
+        restoreSelection();
+        editorRef.current?.focus();
+        document.execCommand('foreColor', false, color);
+        handleInput();
         setShowColorPicker(false);
     };
 
     const applyHighlight = (color: string) => {
-        console.log('Applying highlight color:', color);
-        executeCommand('hiliteColor', color);
+        restoreSelection();
+        editorRef.current?.focus();
+        if (!document.execCommand('hiliteColor', false, color)) {
+            document.execCommand('backColor', false, color);
+        }
+        handleInput();
         setShowHighlightPicker(false);
     };
 
@@ -81,11 +116,9 @@ const RichTextEditor = ({
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            console.log('Click outside:', e.target);
             const target = e.target as HTMLElement;
             if (!target.closest(".color-picker-wrapper")) {
                 setShowColorPicker(false);
-                console.log('Hiding color picker');
                 setShowHighlightPicker(false);
             }
         };
@@ -224,9 +257,11 @@ const RichTextEditor = ({
                     ref={editorRef}
                     contentEditable
                     onInput={handleInput}
+                    onBlur={saveSelection}
+                    onMouseUp={saveSelection}
+                    onKeyUp={saveSelection}
                     className="custom-input resize-none w-full pt-12 focus:outline-none"
                     style={{ minHeight }}
-                    data-placeholder={placeholder}
                     suppressContentEditableWarning
                 />
 
@@ -264,16 +299,16 @@ const RichTextEditor = ({
 
 export default RichTextEditor;
 
-const ToolbarButton = ({ 
-    children, 
-    onClick, 
-    active = false, 
+const ToolbarButton = ({
+    children,
+    onClick,
+    active = false,
     className = "",
-    title 
-}: { 
-    children: React.ReactNode; 
-    onClick: () => void; 
-    active?: boolean; 
+    title
+}: {
+    children: React.ReactNode;
+    onClick: () => void;
+    active?: boolean;
     className?: string;
     title?: string;
 }) => (
@@ -290,26 +325,41 @@ const ToolbarButton = ({
     </button>
 );
 
-const ColorGrid = ({ 
-    colors, 
-    onSelect 
-}: { 
-    colors: string[]; 
+const ColorGrid = ({
+    colors,
+    onSelect
+}: {
+    colors: string[];
     onSelect: (c: string) => void;
 }) => (
-    <div className="absolute top-full left-0 mt-1 p-2 bg-white border-2 border-gray-200 rounded-lg shadow-xl z-30 grid grid-cols-3 gap-1.5">
-        {colors.map(c => (
-            <button
-                key={c}
-                type="button"
-                onMouseDown={(e) => {
-                    e.preventDefault();
-                    onSelect(c);
-                }}
-                className="w-6 h-6 rounded border border-gray-300 hover:scale-110 transition-transform"
-                style={{ backgroundColor: c }}
-                title={c}
-            />
-        ))}
+    <div className="absolute top-full left-0 mt-1 p-2 bg-white border-2 border-gray-200 rounded-lg shadow-xl z-30 min-w-[200px]">
+        <div className="grid grid-cols-6 gap-1.5 mb-2">
+            {colors.map(c => (
+                <button
+                    key={c}
+                    type="button"
+                    onMouseDown={(e) => {
+                        e.preventDefault();
+                        onSelect(c);
+                    }}
+                    className="w-5 h-5 rounded-sm border border-gray-200 hover:scale-110 transition-transform shadow-sm"
+                    style={{ backgroundColor: c }}
+                    title={c}
+                />
+            ))}
+        </div>
+        <div className="border-t pt-2 mt-1">
+            <label className="flex items-center gap-2 cursor-pointer group px-1 rounded hover:bg-gray-50 transition-colors">
+                <div className="relative w-6 h-6 border rounded overflow-hidden flex-shrink-0">
+                    <input
+                        type="color"
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                        onChange={(e) => onSelect(e.target.value)}
+                    />
+                    <div className="w-full h-full bg-gradient-to-tr from-red-500 via-green-500 to-blue-500" />
+                </div>
+                <span className="text-xs text-gray-600 group-hover:text-gray-900 transition-colors font-medium">Custom Color</span>
+            </label>
+        </div>
     </div>
 );
