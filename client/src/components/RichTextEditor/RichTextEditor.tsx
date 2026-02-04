@@ -27,11 +27,18 @@ const RichTextEditor = ({
     const [showHighlightPicker, setShowHighlightPicker] = useState(false);
     const isInternalUpdate = useRef(false);
     const savedSelectionRef = useRef<Range | null>(null);
+    const isEditorFocusedRef = useRef(false);
+
+    const isSelectionInEditor = (selection: Selection | null) => {
+        if (!selection || selection.rangeCount === 0 || !editorRef.current) return false;
+        const range = selection.getRangeAt(0);
+        return editorRef.current.contains(range.commonAncestorContainer);
+    };
 
     // Save selection when focus leaves the editor
     const saveSelection = () => {
         const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
+        if (selection && selection.rangeCount > 0 && isSelectionInEditor(selection)) {
             savedSelectionRef.current = selection.getRangeAt(0).cloneRange();
         }
     };
@@ -127,13 +134,26 @@ const RichTextEditor = ({
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    useEffect(() => {
+        const handleSelectionChange = () => {
+            if (!isEditorFocusedRef.current) return;
+            const selection = window.getSelection();
+            if (isSelectionInEditor(selection)) {
+                saveSelection();
+            }
+        };
+
+        document.addEventListener("selectionchange", handleSelectionChange);
+        return () => document.removeEventListener("selectionchange", handleSelectionChange);
+    }, []);
+
     const minHeight = `${rows * 1.5}rem`;
 
     return (
         <div className={className}>
             <div className="relative">
                 <div className="absolute flex gap-2 mx-2 mt-2 w-fit z-10">
-                    <div className="flex border-2 border-gray-200 rounded overflow-hidden bg-white shadow-sm">
+                    <div className="flex border-2 border-gray-200 rounded bg-white shadow-sm">
                         <ToolbarButton
                             onClick={() => formatText('bold')}
                             className="font-extrabold"
@@ -157,10 +177,11 @@ const RichTextEditor = ({
                         </ToolbarButton>
                     </div>
 
-                    <div className="flex border-2 border-gray-200 rounded overflow-hidden bg-white shadow-sm">
+                    <div className="flex border-2 border-gray-200 rounded bg-white shadow-sm">
                         <div className="relative color-picker-wrapper">
                             <ToolbarButton
                                 onClick={() => {
+                                    saveSelection();
                                     setShowColorPicker(!showColorPicker);
                                     setShowHighlightPicker(false);
                                 }}
@@ -181,6 +202,7 @@ const RichTextEditor = ({
                         <div className="relative color-picker-wrapper">
                             <ToolbarButton
                                 onClick={() => {
+                                    saveSelection();
                                     setShowHighlightPicker(!showHighlightPicker);
                                     setShowColorPicker(false);
                                 }}
@@ -199,7 +221,7 @@ const RichTextEditor = ({
                         </div>
                     </div>
 
-                    <div className="flex border-2 border-gray-200 rounded overflow-hidden bg-white shadow-sm">
+                    <div className="flex border-2 border-gray-200 rounded bg-white shadow-sm">
                         <ToolbarButton
                             onClick={() => applyAlignment('left')}
                             className="border-r"
@@ -229,7 +251,7 @@ const RichTextEditor = ({
                         </ToolbarButton>
                     </div>
 
-                    <div className="flex border-2 border-gray-200 rounded overflow-hidden bg-white shadow-sm">
+                    <div className="flex border-2 border-gray-200 rounded bg-white shadow-sm">
                         <ToolbarButton
                             onClick={() => {
                                 const selection = window.getSelection();
@@ -260,6 +282,12 @@ const RichTextEditor = ({
                     onBlur={saveSelection}
                     onMouseUp={saveSelection}
                     onKeyUp={saveSelection}
+                    onFocus={() => {
+                        isEditorFocusedRef.current = true;
+                    }}
+                    onBlurCapture={() => {
+                        isEditorFocusedRef.current = false;
+                    }}
                     className="custom-input resize-none w-full pt-12 focus:outline-none"
                     style={{ minHeight }}
                     suppressContentEditableWarning
