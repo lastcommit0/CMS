@@ -1,33 +1,38 @@
 export interface PollOption {
-    id: string;
-    text: string;
+  id: string;
+  text: string;
+  _count?: {
     votes: number;
+  };
 }
 
 export interface Poll {
+  id: string;
+  question: string;
+  storyId?: string | null;
+  startsAt: string;
+  endsAt: string;
+  status: "ACTIVE" | "INACTIVE" | "EXPIRED";
+  options: PollOption[];
+  creator?: {
     id: string;
-    title: string;
-    description?: string;
-    options: PollOption[];
-    expiresAt: string;
-    isActive: boolean;
-    forAllArticles: boolean;
-    createdAt: string;
-    updatedAt: string;
+    name: string;
+    email: string;
+  };
 }
 
 export interface CreatePollRequest {
-    title: string;
-    description?: string;
-    options: string[];
-    expiresAt: string;
-    isActive?: boolean;
-    forAllArticles?: boolean;
+  question: string;
+  storyId?: string;
+  status?: "ACTIVE" | "INACTIVE" | "EXPIRED";
+  startsAt?: string;
+  endsAt: string;
+  options: Array<{ text: string }>;
 }
 
 export interface PollFilters {
-    page?: number;
-    limit?: number;
-    search?: string;
-    isActive?: boolean;
+  page?: number;
+  limit?: number;
+  status?: "ACTIVE" | "INACTIVE" | "EXPIRED";
+  storyId?: string;
 }

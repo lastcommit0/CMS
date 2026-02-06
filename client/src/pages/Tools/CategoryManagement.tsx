@@ -1,54 +1,56 @@
 import { Input } from "@/components/ui/input";
-import { SquarePen, Check } from "lucide-react"
+import { SquarePen, Check } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import EditCategory from "./components/EditCategory";
-
-const data = [
-  {
-    id: "1",
-    categoryEng: "UP News",
-    categoryHindi: "UP News",
-    Folder: "UP News",
-    IsParent: "Agra",
-    status: "Active",
-    action: "",
-  },
-  {
-    id: "2",
-    categoryEng: "UP News",
-    categoryHindi: "UP News",
-    Folder: "UP News",
-    IsParent: "Agra",
-    status: "InActive",
-    action: "",
-  },
-  {
-    id: "3",
-    categoryEng: "UP News",
-    categoryHindi: "UP News",
-    Folder: "UP News",
-    IsParent: "dubai",
-    status: "Active",
-    action: "",
-  },
-  {
-    id: "4",
-    categoryEng: "UP News",
-    categoryHindi: "UP News",
-    Folder: "UP News",
-    IsParent: "Agra",
-    status: "InActive",
-    action: "",
-  }
-]
+import { useCategories } from "@/hooks/useCategories";
+import type { CategoryData } from "@/types/categoryTypes";
 
 
 export default function CategoryManagement() {
-  const [open, setOpen] =  useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(data[0]);
+  const [open, setOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryData | null>(null);
+  const [searchEng, setSearchEng] = useState("");
+  const [searchHindi, setSearchHindi] = useState("");
+  const [searchFolder, setSearchFolder] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "true" | "false">("all");
+  const [parentFilter, setParentFilter] = useState<string>("all");
 
-  const openModal = (category: any)=> {
+  const isActiveFilter = statusFilter === "all" ? undefined : statusFilter;
+
+  const { data: listResponse, isLoading, isError } = useCategories({
+    page: 1,
+    limit: 50,
+    search: searchEng || undefined,
+    isActive: isActiveFilter as any,
+    parentId: parentFilter === "all" ? undefined : parentFilter,
+  });
+
+  const categories: CategoryData[] = (listResponse as any)?.data || [];
+  const parentOptions = useMemo(
+    () =>
+      categories.map((cat: CategoryData) => ({
+        value: cat.id,
+        label: cat.name,
+      })),
+    [categories]
+  );
+
+  const filteredCategories = useMemo(() => {
+    const normalizedHindi = searchHindi.trim().toLowerCase();
+    const normalizedFolder = searchFolder.trim().toLowerCase();
+
+    return categories.filter((cat: CategoryData) => {
+      const name = cat.name.toLowerCase();
+      const parentName = cat.parent?.name?.toLowerCase() || "root";
+
+      if (normalizedHindi && !name.includes(normalizedHindi)) return false;
+      if (normalizedFolder && !parentName.includes(normalizedFolder)) return false;
+      return true;
+    });
+  }, [categories, searchHindi, searchFolder]);
+
+  const openModal = (category: CategoryData) => {
     setSelectedCategory(category);
     setOpen(true);
   }
@@ -62,7 +64,7 @@ export default function CategoryManagement() {
     <div className="w-full min-h-screen bg-white">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-4 bg-white">
         <header className="flex justify-between items-center pb-2 min-w-full">
-          <div className="text-[#243874] font-semibold text-[18px]">Categoty Management</div>
+          <div className="text-[#243874] font-semibold text-[18px]">Category Management</div>
         </header>
       </div>
       <div className="border-b"></div>
@@ -81,109 +83,160 @@ export default function CategoryManagement() {
               </tr>
             </thead>
             <thead>
-              <tr> 
+              <tr>
                 <th className="px-4 py-3 text-left">#</th>
                 <th className="px-4 py-3 text-center">
-                  <FilterInput></FilterInput>
+                  <FilterInput value={searchEng} onChange={setSearchEng} />
                 </th>
                 <th className="px-4 py-3 text-center">
-                  <FilterInput></FilterInput>
+                  <FilterInput value={searchHindi} onChange={setSearchHindi} />
                 </th>
                 <th className="px-4 py-3 text-center">
-                  <FilterInput></FilterInput>
+                  <FilterInput value={searchFolder} onChange={setSearchFolder} />
                 </th>
                 <th className="px-4 py-3 text-center">
-                  <SelectField value={""} options={[]} onChange={()=>{}} />
+                  <SelectField
+                    value={parentFilter}
+                    options={[
+                      { label: "All", value: "all" },
+                      ...parentOptions,
+                    ]}
+                    onChange={(val) => setParentFilter(val)}
+                  />
                 </th>
                 <th className="px-4 py-3 text-center">
-                  <SelectField value={""} options={[]} onChange={()=>{}} />
+                  <SelectField
+                    value={statusFilter}
+                    options={[
+                      { label: "All", value: "all" },
+                      { label: "Active", value: "true" },
+                      { label: "Inactive", value: "false" },
+                    ]}
+                    onChange={(val) => setStatusFilter(val as any)}
+                  />
                 </th>
                 <th className="px-4 py-3 text-center text-green-400"><Check></Check></th>
-                
+
               </tr>
             </thead>
 
             <tbody className="divide-y">
-              {data.map((category) => (
-                <tr key={category.id} className="text-sm text-gray-700">
-                  {/* Priority */}
-
-                  {/* ID */}
-                  <td className="px-4 py-4">{category.id}</td>
-
-                  {/* Author */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <span>{category.categoryEng}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <span>{category.categoryHindi}</span>
-                    </div>
-                  </td>
-
-                  {/* Title */}
-                  <td className="px-6 py-4 max-w-md">
-                    <div className="flex items-center gap-2">
-                      {category.Folder}
-                    </div>
-                  </td>
-
-                  {/* Managed By */}
-                  <td className="px-6 py-4">{category.IsParent}</td>
-
-                  {/* Status */}
-                  <td className="px-4 py-4 text-center">
-                    {category.status === "Active" ? (
-                      <p className="w-18 text-left border border-gray-300 rounded-md tracking-tight">
-                        <span
-                          className="inline-flex items-center text-lg gap-1 rounded-full px-1.5 font-medium text-green-700"
-                        >
-                          ●
-                        </span>
-                        {category.status}
-                      </p>
-                    )
-                    : (
-                      <p className="w-20 text-left border border-gray-300 rounded-md tracking-tight">
-                        <span
-                          className="inline-flex items-center text-lg gap-1 rounded-full px-1.5 font-medium text-red-700"
-                        >
-                          ●
-                        </span>
-                        {category.status}
-                      </p>
-                    )}
-                  </td>
-
-                  {/* Action */}
-                  <td className="px-4 py-4 text-center">
-                    <button className="text-gray-500 hover:text-black"
-                      onClick={() => openModal(category)}
-                    >
-                      <SquarePen size={16} />
-                    </button>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                    Loading categories...
                   </td>
                 </tr>
-              ))}
+              ) : isError ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-red-500">
+                    Failed to load categories
+                  </td>
+                </tr>
+              ) : filteredCategories.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                    No categories found
+                  </td>
+                </tr>
+              ) : (
+                filteredCategories.map((category: CategoryData) => (
+                  <tr key={category.id} className="text-sm text-gray-700">
+                    {/* Priority */}
+
+                    {/* ID */}
+                    <td className="px-4 py-4">{category.id}</td>
+
+                    {/* Author */}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <span>{category.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <span>{category.name}</span>
+                      </div>
+                    </td>
+
+                    {/* Title */}
+                    <td className="px-6 py-4 max-w-md">
+                      <div className="flex items-center gap-2">
+                        {category.parent?.name || "Root"}
+                      </div>
+                    </td>
+
+                    {/* Managed By */}
+                    <td className="px-6 py-4">
+                      {category._count?.subcategories && category._count.subcategories > 0
+                        ? "Yes"
+                        : "No"}
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-4 py-4 text-center">
+                      {category.isActive ? (
+                        <p className="w-18 text-left border border-gray-300 rounded-md tracking-tight">
+                          <span
+                            className="inline-flex items-center text-lg gap-1 rounded-full px-1.5 font-medium text-green-700"
+                          >
+                            ●
+                          </span>
+                          Active
+                        </p>
+                      )
+                        : (
+                          <p className="w-20 text-left border border-gray-300 rounded-md tracking-tight">
+                            <span
+                              className="inline-flex items-center text-lg gap-1 rounded-full px-1.5 font-medium text-red-700"
+                            >
+                              ●
+                            </span>
+                            Inactive
+                          </p>
+                        )}
+                    </td>
+
+                    {/* Action */}
+                    <td className="px-4 py-4 text-center">
+                      <button className="text-gray-500 hover:text-black"
+                        onClick={() => openModal(category)}
+                      >
+                        <SquarePen size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
       {open && (
-        <EditCategory category={selectedCategory} closeModal={closeModal}  />
+        selectedCategory && (
+          <EditCategory
+            category={selectedCategory}
+            categories={categories}
+            closeModal={closeModal}
+          />
+        )
       )}
     </div>
   )
 }
 
 
-const FilterInput = ({}) => {
+const FilterInput = ({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) => {
   return (
     <Input
-      value={""}
-      onChange={() => {}}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
       className="bg-gray-100 w-[154px] border-0 border-b-2 hover:none rounded-none"
     />
   )
@@ -196,6 +249,7 @@ interface SelectFieldProps {
 }
 
 interface OptionProps {
+  label: string;
   value: string;
 }
 
@@ -217,6 +271,7 @@ export function SelectField({
               key={opt.value}
               value={opt.value}
             >
+              {opt.label}
             </SelectItem>
           ))}
         </SelectContent>

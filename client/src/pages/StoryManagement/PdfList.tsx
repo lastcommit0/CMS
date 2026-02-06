@@ -35,11 +35,12 @@ const EditButton = () => {
 }
 
 export const PdfList = () => {
-    const [searchQuery, setSearchQuery] = useState("")
+    const [searchTerm, setSearchTerm] = useState("")
+    const [debouncedSearch, setDebouncedSearch] = useState("")
     const [open, setOpen] = useState(false);
 
     const { data: epapersData, isLoading, isError } = useEpapers({
-        search: searchQuery,
+        search: debouncedSearch,
     })
 
     const handleOpenModal = () => {
@@ -59,8 +60,9 @@ export const PdfList = () => {
                         right={
                             <div className="flex items-center gap-4">
                                 <SearchBox
-                                    value={searchQuery}
-                                    onChange={setSearchQuery}
+                                    value={searchTerm}
+                                    onChange={setSearchTerm}
+                                    onSearch={setDebouncedSearch}
                                 />
                                 <button
                                     onClick={handleOpenModal}
@@ -101,7 +103,7 @@ export const PdfList = () => {
                                                 colSpan={6}
                                                 className="px-4 py-10 text-center text-gray-500"
                                             >
-                                                No E-Papers found.
+                                                {debouncedSearch ? "No E-Papers found matching your search." : "No E-Papers found."}
                                             </td>
                                         </tr>
                                     ) : (

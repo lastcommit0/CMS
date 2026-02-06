@@ -6,7 +6,8 @@ import { useUsers } from "@/hooks/useUsers";
 import SearchBox from "@/components/SearchBox"
 
 export default function AdminUserList() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any | null>(null);
@@ -14,20 +15,16 @@ export default function AdminUserList() {
   const { data, isLoading, refetch } = useUsers({
     page,
     limit: 10,
-    search: searchQuery,
+    search: debouncedSearch,
   });
 
   const users = data?.users || [];
   const pagination = data?.pagination;
 
+  // Reset to page 1 when search term changes
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setPage(1); 
-      refetch();
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+    setPage(1);
+  }, [debouncedSearch]);
 
   const openModal = (user?: any) => {
     setEditingUser(user || null);
@@ -51,7 +48,11 @@ export default function AdminUserList() {
         </h1>
 
         <div className="flex items-center gap-4">
-          <SearchBox value={searchQuery} onChange={setSearchQuery} />
+          <SearchBox
+            value={searchTerm}
+            onChange={setSearchTerm}
+            onSearch={setDebouncedSearch}
+          />
 
           <Button
             onClick={() => openModal()}
@@ -89,7 +90,7 @@ export default function AdminUserList() {
                 ) : users.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
-                      {searchQuery ? "No users found matching your search" : "No users found"}
+                      {debouncedSearch ? "No users found matching your search" : "No users found"}
                     </td>
                   </tr>
                 ) : (
@@ -115,13 +116,12 @@ export default function AdminUserList() {
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                            user.status === "ACTIVE"
-                              ? "bg-green-100 text-green-700"
-                              : user.status === "SUSPENDED"
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${user.status === "ACTIVE"
+                            ? "bg-green-100 text-green-700"
+                            : user.status === "SUSPENDED"
                               ? "bg-yellow-100 text-yellow-700"
                               : "bg-red-100 text-red-700"
-                          }`}
+                            }`}
                         >
                           {user.status}
                         </span>

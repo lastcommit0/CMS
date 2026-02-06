@@ -6,10 +6,11 @@ import { SquarePen, Loader2 } from "lucide-react"
 import { useStories } from "@/hooks/useStories"
 
 export const VideoList = () => {
-    const [searchQuery, setSearchQuery] = useState("")
+    const [searchTerm, setSearchTerm] = useState("")
+    const [debouncedSearch, setDebouncedSearch] = useState("")
     const [open, setOpen] = useState(false);
     const { data: storiesData, isLoading, isError } = useStories({
-        search: searchQuery,
+        search: debouncedSearch,
         limit: 10,
         page: 1
     })
@@ -31,8 +32,9 @@ export const VideoList = () => {
                         right={
                             <div className="flex items-center gap-4">
                                 <SearchBox
-                                    value={searchQuery}
-                                    onChange={setSearchQuery}
+                                    value={searchTerm}
+                                    onChange={setSearchTerm}
+                                    onSearch={setDebouncedSearch}
                                 />
                                 <button
                                     onClick={() => handleOpenModal()}
@@ -67,13 +69,13 @@ export const VideoList = () => {
                                 </thead>
 
                                 <tbody className="divide-y">
-                                    {storiesData?.data.length === 0 ? (
+                                    {!storiesData?.data || storiesData.data.length === 0 ? (
                                         <tr>
                                             <td
                                                 colSpan={6}
                                                 className="px-4 py-6 text-center text-gray-500"
                                             >
-                                                No Video Found
+                                                {debouncedSearch ? "No videos found matching your search." : "No Video Found"}
                                             </td>
                                         </tr>
                                     ) : (

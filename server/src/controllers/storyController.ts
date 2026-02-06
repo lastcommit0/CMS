@@ -57,7 +57,7 @@ export const createStory = async (req: Request, res: Response, next: NextFunctio
 
 export const updateStory = async (req: Request, res: Response, next: NextFunction) => {
     const data = updateStorySchema.parse(req.body);
-    const story = await StoryService.update(req.params.id, data);
+    const story = await StoryService.update(req.params.id, data, req.user!.id);
 
     await prisma.auditLog.create({
         data: {
@@ -91,9 +91,9 @@ export const deleteStory = async (req: Request, res: Response, next: NextFunctio
 
 export const stats = async (req: Request, res: Response, next: NextFunction) => {
     const stats = await StoryService.stats();
-    if(stats){
+    if (stats) {
         console.log('Stats found');
-    }else{
+    } else {
         console.log('No stats found');
     }
     res.json({ success: true, data: stats });

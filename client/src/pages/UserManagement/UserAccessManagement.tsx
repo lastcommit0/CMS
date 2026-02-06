@@ -54,7 +54,7 @@ export default function UserAccessManagement() {
             onClick={() => setOpen(true)}
             className="bg-[#243874] text-white h-9 px-4 hover:bg-[#243874]/90"
           >
-            + New User
+            + New Access
           </Button>
         </div>
       </header>

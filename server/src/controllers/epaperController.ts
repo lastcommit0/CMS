@@ -53,9 +53,21 @@ export class EpaperController {
     }
 
     async getAllEpapers(req: Request, res: Response) {
-        const all = await EpaperService.getAllEPapers();
+        const { search } = req.query;
+        const all = await EpaperService.getAllEPapers(search as string);
 
-        res.json(all);
+        res.json({
+            status: "success",
+            data: {
+                data: all,
+                pagination: {
+                    total: all.length,
+                    page: 1,
+                    limit: all.length,
+                    totalPage: 1
+                }
+            }
+        });
     }
 
     async getEpaperById(req: Request, res: Response) {

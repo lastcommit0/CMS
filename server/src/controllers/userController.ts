@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import { UserService } from "../services/userService";
 import prisma from "../db";
 import { updateUserSchema, changePasswordSchema } from "../validators/userSchema";
+import CustomError from "../errors/customError";
+import { ErrorCode } from "../errors/errorCode";
 
 export const getUsers = async (req: Request, res: Response, next: NextFunction) => {
     const page = Number(req.query.page) || 1;
@@ -19,6 +21,19 @@ export const getUsers = async (req: Request, res: Response, next: NextFunction) 
         success: true,
         data: result.users,
         pagination: result.pagination
+    });
+};
+
+export const getCurrentUser = async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user?.id) {
+        throw new CustomError(ErrorCode.AUTH_TOKEN_MISSING);
+    }
+
+    const user = await UserService.getCurrentUser(req.user.id);
+
+    res.status(200).json({
+        success: true,
+        data: user
     });
 };
 

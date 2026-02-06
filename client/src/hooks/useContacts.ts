@@ -7,7 +7,7 @@ const CONTACT_KEYS = {
     list: (filters: any) => [...CONTACT_KEYS.all, 'list', filters] as const,
 };
 
-export const useContacts = (filters?: any) => {
+export const useContacts = (filters: any = { page: 1, limit: 10 }) => {
     return useQuery({
         queryKey: CONTACT_KEYS.list(filters),
         queryFn: () => contactApi.getMessages(filters).then((res) => res.data.data!),

@@ -1,7 +1,8 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { LoginCredentials, RegisterData } from '@/types/authTypes';
 import { accessTokenStore } from '@/lib/api/tokenManager';
 import { authApi } from '@/services/authService';
+import { userApi } from '@/services/userService';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -23,6 +24,18 @@ export const useIdentifyUser = () => {
         error?.response?.data?.error?.message ?? "User not found"
       );
     },
+  });
+};
+
+export const useCurrentUser = () => {
+  return useQuery({
+    queryKey: AUTH_KEYS.user,
+    queryFn: async () => {
+      const res = await userApi.getCurrentUser();
+      return res.data.data!;
+    },
+    enabled: !!accessTokenStore.get(),
+    staleTime: 5 * 60 * 1000,
   });
 };
 

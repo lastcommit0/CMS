@@ -5,9 +5,10 @@ import { useContacts, useDeleteContact } from "@/hooks/useContacts"
 import { Loader2, Trash2 } from "lucide-react"
 
 export const ContactList = () => {
-    const [searchQuery, setSearchQuery] = useState("")
+    const [searchTerm, setSearchTerm] = useState("")
+    const [debouncedSearch, setDebouncedSearch] = useState("")
     const { data: contactData, isLoading, isError } = useContacts({
-        search: searchQuery,
+        search: debouncedSearch,
     })
     const deleteMut = useDeleteContact();
 
@@ -56,8 +57,9 @@ export const ContactList = () => {
                 </h1>
                 <div className="flex flex-row gap-4">
                     <SearchBox
-                        value={searchQuery}
-                        onChange={setSearchQuery}
+                        value={searchTerm}
+                        onChange={setSearchTerm}
+                        onSearch={setDebouncedSearch}
                         placeholder="Search by name, email or message"
                     />
                     <Button
@@ -95,7 +97,7 @@ export const ContactList = () => {
                             {!contactData?.data || contactData.data.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-4 py-10 text-center text-gray-500">
-                                        No messages found.
+                                        {debouncedSearch ? "No messages found matching your search." : "No messages found."}
                                     </td>
                                 </tr>
                             ) : (

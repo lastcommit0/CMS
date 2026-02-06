@@ -10,10 +10,18 @@ export default function CreatePoll() {
     const [open, setOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState("")
     const { data: pollsData, isLoading, isError } = usePolls({
-        search: searchTerm,
         limit: 10,
         page: 1
     })
+
+    const filteredPolls = (pollsData?.data || []).filter((poll) => {
+        const term = searchTerm.trim().toLowerCase();
+        if (!term) return true;
+        return (
+            poll.question.toLowerCase().includes(term) ||
+            poll.id.toLowerCase().includes(term)
+        );
+    });
 
     const onClose = () => {
         setOpen(false)
@@ -65,32 +73,32 @@ export default function CreatePoll() {
                             </tr>
                         </thead>
                         <tbody>
-                            {pollsData?.data.length === 0 ? (
+                            {filteredPolls.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="text-center py-10 text-gray-500">
                                         No polls found.
                                     </td>
                                 </tr>
                             ) : (
-                                pollsData?.data.map((poll) => (
+                                filteredPolls.map((poll) => (
                                     <tr key={poll.id} className="text-sm text-gray-700">
                                         <td className="px-4 py-4">{poll.id.slice(0, 8)}...</td>
 
                                         <td className="px-4 py-4 max-w-md">
-                                            <div className="font-medium truncate">{limitWords(poll.title, 5)}</div>
+                                            <div className="font-medium truncate">{limitWords(poll.question, 5)}</div>
                                         </td>
 
                                         <td className="px-4 py-4">
-                                            {new Date(poll.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                            {new Date(poll.startsAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                         </td>
 
                                         <td className="px-4 py-4">
-                                            {new Date(poll.expiresAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                            {new Date(poll.endsAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                         </td>
 
                                         <td className="px-4 py-4">
-                                            <span className={`px-2 py-1 rounded text-xs ${poll.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                {poll.isActive ? 'Active' : 'Inactive'}
+                                            <span className={`px-2 py-1 rounded text-xs ${poll.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : poll.status === 'EXPIRED' ? 'bg-gray-100 text-gray-700' : 'bg-red-100 text-red-700'}`}>
+                                                {poll.status === 'ACTIVE' ? 'Active' : poll.status === 'EXPIRED' ? 'Expired' : 'Inactive'}
                                             </span>
                                         </td>
 

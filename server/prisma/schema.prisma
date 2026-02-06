@@ -121,17 +121,25 @@ model Session {
 model Story {
   id         String      @id @default(cuid())
   title      String
+  shortTitle String
   slug       String      @unique
   excerpt    String
   content    Json
+  highlights Json?
   storyType  StoryType
   status     StoryStatus
   priority   Int         @default(0)
   scheduleAt DateTime?
   authorId   String
 
+  mandal       String?
+  district     String?
+  place        String?
+  photoCaption String?
+  photoCredit  String?
+
   author       User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  assets       StoryAsset[]
+  assets       StoryAsset[] 
   sections     StorySection[]
   versions     StoryVersion[]
   meta         MetaTag?

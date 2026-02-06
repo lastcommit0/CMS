@@ -13,7 +13,7 @@ const POLL_KEYS = {
 export const usePolls = (filters: PollFilters) => {
     return useQuery({
         queryKey: POLL_KEYS.list(filters),
-        queryFn: () => pollApi.getPolls(filters).then((res) => res.data.data!),
+        queryFn: () => pollApi.getPolls(filters).then((res) => res.data),
         staleTime: 5 * 60 * 1000,
     });
 };

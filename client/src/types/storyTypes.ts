@@ -5,6 +5,12 @@ export interface StoryAsset {
   metadata?: any;
 }
 
+export interface StoryAssetInput {
+  mediaId: string;
+  isCover?: boolean;
+  order?: number;
+}
+
 export interface StoryAssetRef {
   assetId: string;
   caption?: string;
@@ -146,7 +152,9 @@ export interface Story {
   assets?: StoryAsset[];
 }
 
-export interface CreateStoryRequest extends StoryFormState { }
+export interface CreateStoryRequest extends StoryFormState {
+  assets?: StoryAssetInput[];
+}
 
 export interface UpdateStoryRequest extends Partial<StoryFormState> {
   id: string;

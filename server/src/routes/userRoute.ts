@@ -4,6 +4,7 @@ import * as userController from "../controllers/userController";
 
 const router = Router();
 
+router.get("/me", catchAsync(userController.getCurrentUser));
 router.get("/users", catchAsync(userController.getUsers));
 router.get("/user/:id", catchAsync(userController.getUser));
 router.post("/user/:id", catchAsync(userController.updateUser));

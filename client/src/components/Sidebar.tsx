@@ -6,6 +6,7 @@ import tool from "../assets/icons/tool.svg";
 import huge from "../assets/icons/huge.svg";
 import { NavLink, useLocation } from "react-router-dom";
 import { useLogout } from "@/hooks/useAuth";
+import { useAuthContext } from "@/auth/AuthContext";
 
 
 const menuItems = [
@@ -63,6 +64,7 @@ const menuItems = [
 export default function Sidebar() {
   const location = useLocation();
   const logout = useLogout();
+  const { user } = useAuthContext();
 
   const activeMenu = menuItems.find(item =>
     location.pathname.startsWith(item.path)
@@ -72,6 +74,16 @@ export default function Sidebar() {
   const handleLogout = () => {
     logout.mutate();
   }
+
+  const avatarUrl = user?.profile?.avatar;
+  const name = user?.name?.trim() || "";
+  const initials =
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(part => part[0]?.toUpperCase())
+      .join("") || "U";
 
   return (
     <div className="fixed top-0 flex min-h-screen">
@@ -104,9 +116,17 @@ export default function Sidebar() {
         </div>
 
         <button className="mt-auto flex flex-col items-center gap-2" onClick={handleLogout}>
-          <div className="w-9 h-9 rounded-full bg-yellow-500 flex items-center justify-center font-bold text-black text-xs">
-            SB
-          </div>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={name || "User avatar"}
+              className="w-9 h-9 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-yellow-500 flex items-center justify-center font-bold text-black text-xs">
+              {initials}
+            </div>
+          )}
           <span className="text-[10px] text-gray-400">Logout</span>
         </button>
       </aside>

@@ -2,6 +2,7 @@ import apiClient, { type ApiResponse } from "@/lib/api/axiosClient";
 import type {
     Story,
     StoryAsset,
+    StoryAssetInput,
     StoryFormState,
     CreateStoryRequest,
     UpdateStoryRequest,
@@ -49,7 +50,7 @@ export const storyApi = {
     getStats: () =>
         apiClient.get<ApiResponse<StoryStats>>(`${STORY_URL}/stats`),
 
-    addAsset: (storyId: string, asset: Omit<StoryAsset, 'id'>) =>
+    addAsset: (storyId: string, asset: StoryAssetInput) =>
         apiClient.post<ApiResponse<StoryAsset>>(
             `${STORY_URL}/${storyId}/assets`,
             asset
@@ -57,7 +58,7 @@ export const storyApi = {
 
     deleteAsset: (storyId: string, assetId: string) =>
         apiClient.delete<ApiResponse<{ success: boolean }>>(
-            `${STORY_URL}/${storyId}/assets/${assetId}`
+            `${STORY_URL}/${storyId}/asset/${assetId}`
         ),
 
     getAssets: (storyId: string) =>
@@ -93,34 +94,6 @@ export const storyApi = {
             `${STORY_URL}/bulk/status`,
             { storyIds, status }
         ),
-
-    uploadCoverImage: (storyId: string, file: File) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        return apiClient.post<ApiResponse<StoryAsset>>(
-            `${STORY_URL}/${storyId}/cover-image`,
-            formData,
-            {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            }
-        );
-    },
-
-    uploadPDF: (storyId: string, file: File) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        return apiClient.post<ApiResponse<StoryAsset>>(
-            `${STORY_URL}/${storyId}/pdf`,
-            formData,
-            {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            }
-        );
-    },
 
     duplicateStory: (id: string) =>
         apiClient.post<ApiResponse<Story>>(`${STORY_URL}/${id}/duplicate`),

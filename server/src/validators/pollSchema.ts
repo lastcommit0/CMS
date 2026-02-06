@@ -4,7 +4,8 @@ export const createPollSchema = z.object({
   question: z.string().min(5).max(500),
   storyId: z.string().optional(),
   status: z.enum(['ACTIVE', 'INACTIVE', 'EXPIRED']).optional(),
-  expiresAt: z.string().datetime().optional(),
+  startsAt: z.string().datetime().optional(),
+  endsAt: z.string().datetime(),
   options: z.array(
     z.object({
       text: z.string().min(1).max(200)
@@ -15,7 +16,7 @@ export const createPollSchema = z.object({
 export const updatePollSchema = z.object({
   question: z.string().min(5).max(500).optional(),
   status: z.enum(['ACTIVE', 'INACTIVE', 'EXPIRED']).optional(),
-  expiresAt: z.string().datetime().optional()
+  endsAt: z.string().datetime().optional()
 });
 
 export const voteSchema = z.object({

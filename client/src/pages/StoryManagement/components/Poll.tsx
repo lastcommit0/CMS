@@ -47,12 +47,10 @@ export default function Poll({ onClose }: { onClose: () => void }) {
     }
 
     createPollMut.mutate({
-      title,
-      description,
-      options: filteredOptions,
-      expiresAt: new Date(endDate).toISOString(),
-      isActive,
-      forAllArticles,
+      question: title,
+      options: filteredOptions.map((text) => ({ text })),
+      endsAt: new Date(endDate).toISOString(),
+      status: isActive ? "ACTIVE" : "INACTIVE",
     }, {
       onSuccess: () => {
         onClose()

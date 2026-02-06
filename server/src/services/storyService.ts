@@ -51,25 +51,104 @@ export class StoryService {
       throw new CustomError(ErrorCode.STORY_SLUG_CONFLICT);
     }
 
-    return prisma.story.create({
-      data: {
-        ...data,
-        priority: data.priority ?? 0,
-        scheduleAt: data.scheduleAt ? new Date(data.scheduleAt) : undefined,
-        authorId,
-        sections: data.sectionIds
-          ? { create: data.sectionIds.map((id: string) => ({ sectionId: id })) }
-          : undefined,
-        metaTags: data.metaTags ? { create: data.metaTags } : undefined
-      },
-      include: {
-        sections: { include: { section: true } },
-        meta: true
+    return prisma.$transaction(async (tx) => {
+      const assetsInput = Array.isArray(data.assets) ? data.assets : [];
+      if (assetsInput.length < 2) {
+        throw new CustomError({
+          statusCode: 400,
+          message: 'Cover image and PDF are required for a story',
+          code: 'STORY_ASSETS_REQUIRED'
+        });
       }
+
+      const mediaIds = assetsInput.map((asset: any) => asset.mediaId);
+      const mediaAssets = await tx.mediaAsset.findMany({
+        where: { id: { in: mediaIds } },
+        select: { id: true, type: true }
+      });
+
+      if (mediaAssets.length !== mediaIds.length) {
+        throw new CustomError(ErrorCode.MEDIA_NOT_FOUND);
+      }
+
+      const mediaById = new Map(mediaAssets.map((m) => [m.id, m.type]));
+      const hasCoverImage = assetsInput.some(
+        (asset: any) => asset.isCover && mediaById.get(asset.mediaId) === 'IMAGE'
+      );
+      const hasPdf = assetsInput.some(
+        (asset: any) => mediaById.get(asset.mediaId) === 'PDF'
+      );
+
+      if (!hasCoverImage || !hasPdf) {
+        throw new CustomError({
+          statusCode: 400,
+          message: 'Story must include a cover image and a PDF attachment',
+          code: 'STORY_ASSETS_REQUIRED'
+        });
+      }
+
+      const story = await tx.story.create({
+        data: {
+          title: data.title,
+          shortTitle: data.shortTitle,
+          slug: data.slug,
+          excerpt: data.excerpt,
+          content: data.content,
+          highlights: data.highlights,
+          storyType: data.storyType,
+          status: data.status,
+          priority: data.priority ?? 0,
+          scheduleAt: data.scheduleAt ? new Date(data.scheduleAt) : undefined,
+          authorId,
+          mandal: data.mandal,
+          district: data.district,
+          place: data.place,
+          photoCaption: data.photoCaption,
+          photoCredit: data.photoCredit,
+          sections: data.sectionIds
+            ? { create: data.sectionIds.map((id: string) => ({ sectionId: id })) }
+            : undefined,
+          meta: data.metaTags ? { create: data.metaTags } : undefined,
+          assets: {
+            create: assetsInput.map((asset: any, index: number) => ({
+              mediaId: asset.mediaId,
+              isCover: !!asset.isCover,
+              order: asset.order ?? index,
+            }))
+          }
+        },
+        include: {
+          sections: { include: { section: true } },
+          meta: true
+        }
+      });
+
+      // Initial version
+      await tx.storyVersion.create({
+        data: {
+          storyId: story.id,
+          content: story.content as any,
+          editedBy: authorId,
+          reason: 'Initial creation'
+        }
+      });
+
+      // Audit log
+      await tx.auditLog.create({
+        data: {
+          userId: authorId,
+          action: 'STORY_CREATED',
+          resource: 'Story',
+          metadata: { storyId: story.id, status: story.status },
+          ipAddress: 'system'
+        }
+      });
+
+      return story;
     });
   }
 
-  static async update(id: string, data: any) {
+  static async update(id: string, data: any, userId?: string) {
     if (data.slug) {
       const exists = await prisma.story.findFirst({
         where: { slug: data.slug, id: { not: id } }
@@ -83,22 +162,62 @@ export class StoryService {
       await prisma.storySection.deleteMany({ where: { storyId: id } });
     }
 
-    return prisma.story.update({
-      where: { id },
-      data: {
-        ...data,
-        scheduleAt: data.scheduleAt ? new Date(data.scheduleAt) : undefined,
-        sections: data.sectionIds
-          ? { create: data.sectionIds.map((sid: string) => ({ sectionId: sid })) }
-          : undefined,
-        metaTags: data.metaTags
-          ? { upsert: { create: data.metaTags, update: data.metaTags } }
-          : undefined
-      },
-      include: {
-        sections: { include: { section: true } },
-        meta: true
+    return prisma.$transaction(async (tx) => {
+      const story = await tx.story.update({
+        where: { id },
+        data: {
+          title: data.title,
+          shortTitle: data.shortTitle,
+          slug: data.slug,
+          excerpt: data.excerpt,
+          content: data.content,
+          highlights: data.highlights,
+          storyType: data.storyType,
+          status: data.status,
+          priority: data.priority ?? 0,
+          scheduleAt: data.scheduleAt ? new Date(data.scheduleAt) : undefined,
+          mandal: data.mandal,
+          district: data.district,
+          place: data.place,
+          photoCaption: data.photoCaption,
+          photoCredit: data.photoCredit,
+          sections: data.sectionIds
+            ? { create: data.sectionIds.map((sid: string) => ({ sectionId: sid })) }
+            : undefined,
+          meta: data.metaTags
+            ? { upsert: { create: data.metaTags, update: data.metaTags } }
+            : undefined
+        },
+        include: {
+          sections: { include: { section: true } },
+          meta: true
+        }
+      });
+
+      if (userId) {
+        // Create version on update if userId is provided
+        await tx.storyVersion.create({
+          data: {
+            storyId: story.id,
+            content: story.content as any,
+            editedBy: userId,
+            reason: 'Manual update'
+          }
+        });
+
+        // Audit log
+        await tx.auditLog.create({
+          data: {
+            userId: userId,
+            action: 'STORY_UPDATED',
+            resource: 'Story',
+            metadata: { storyId: story.id },
+            ipAddress: 'system'
+          }
+        });
       }
+
+      return story;
     });
   }
 
@@ -126,8 +245,30 @@ export class StoryService {
   }
 
   static async addAsset(storyId: string, data: any) {
+    const media = await prisma.mediaAsset.findUnique({
+      where: { id: data.mediaId },
+      select: { id: true, type: true }
+    });
+
+    if (!media) {
+      throw new CustomError(ErrorCode.MEDIA_NOT_FOUND);
+    }
+
+    if (data.isCover && media.type !== 'IMAGE') {
+      throw new CustomError({
+        statusCode: 400,
+        message: 'Cover asset must be an image',
+        code: 'STORY_ASSET_INVALID_TYPE'
+      });
+    }
+
     return prisma.storyAsset.create({
-      data: { storyId, ...data }
+      data: {
+        storyId,
+        mediaId: data.mediaId,
+        isCover: !!data.isCover,
+        order: data.order ?? 0,
+      }
     });
   }
 

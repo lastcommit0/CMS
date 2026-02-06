@@ -1,14 +1,17 @@
 import { Clipboard, Tag } from "lucide-react"
 import image from "../../assets/icons/image.svg"
 import pdf from "../../assets/icons/pdf.svg"
-import type { StoryFormState, EditorContent } from "@/types/storyTypes"
+import type { StoryFormState } from "@/types/storyTypes"
 import React, { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useCreateStory, useUploadCoverImage, useUploadPDF } from "@/hooks/useStories"
+import { useCreateStory } from "@/hooks/useStories"
 import { toast } from "sonner"
 import { Loader2, X } from "lucide-react"
 import RichTextEditor from "@/components/RichTextEditor/RichTextEditor"
-import { storyApi } from "@/services/storyService"
+import { storageApi } from "@/services/storageService"
+import type { StoryAssetInput } from "@/types/storyTypes"
+import { useUploadImage } from "@/hooks/useStorage"
+import { useUploadPDF } from "@/hooks/useStories"
 
 const initialStoryFormState: StoryFormState = {
   type: 'STORY',
@@ -40,8 +43,6 @@ const initialStoryFormState: StoryFormState = {
 export default function AddStory() {
   const navigate = useNavigate();
   const createStoryMut = useCreateStory();
-  const uploadCoverMut = useUploadCoverImage();
-  const uploadPdfMut = useUploadPDF();
   const draftHydratedRef = useRef(false);
   const draftSaveTimerRef = useRef<number | null>(null);
   const [form, setForm] = useState<StoryFormState>(initialStoryFormState);
@@ -50,10 +51,9 @@ export default function AddStory() {
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const textRef = useRef<HTMLTextAreaElement>(null);
+  const uploadImageMut = useUploadImage();
+  const uploadPdfMut = useUploadPDF();
 
-  const [descriptionText, setDescriptionText] = useState('');
-  const [highlightsText, setHighlightsText] = useState('');
 
   const DRAFT_STORAGE_KEY = 'cms:add-story-draft:v1';
 
@@ -64,16 +64,13 @@ export default function AddStory() {
         draftHydratedRef.current = true;
         return;
       }
-      const parsed = JSON.parse(stored) as {
-        form?: StoryFormState;
-        descriptionText?: string;
-        highlightsText?: string;
-        tagInput?: string;
-      };
-      if (parsed.form) setForm(parsed.form);
-      if (typeof parsed.descriptionText === 'string') setDescriptionText(parsed.descriptionText);
-      if (typeof parsed.highlightsText === 'string') setHighlightsText(parsed.highlightsText);
-      if (typeof parsed.tagInput === 'string') setTagInput(parsed.tagInput);
+      const parsed = JSON.parse(stored);
+      if (parsed && parsed.form) {
+        setForm(parsed.form);
+      }
+      if (parsed && typeof parsed.tagInput === 'string') {
+        setTagInput(parsed.tagInput);
+      }
     } catch (error) {
       console.warn('Failed to restore draft from storage', error);
     } finally {
@@ -92,8 +89,6 @@ export default function AddStory() {
       try {
         const payload = {
           form,
-          descriptionText,
-          highlightsText,
           tagInput,
         };
         localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(payload));
@@ -107,7 +102,7 @@ export default function AddStory() {
         window.clearTimeout(draftSaveTimerRef.current);
       }
     };
-  }, [form, descriptionText, highlightsText, tagInput]);
+  }, [form, tagInput]);
 
   const clearDraftStorage = () => {
     try {
@@ -127,17 +122,6 @@ export default function AddStory() {
     }
   }, [form.articleTitle]);
 
-  const textToEditorContent = (text: string): EditorContent => {
-    return {
-      version: '1.0',
-      time: Date.now(),
-      blocks: text ? [{
-        id: `block_${Date.now()}`,
-        type: 'paragraph',
-        data: { text }
-      }] : []
-    };
-  };
 
   const handleInputChange = (field: keyof StoryFormState, value: any) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -180,6 +164,7 @@ export default function AddStory() {
         toast.error('Only image files are allowed');
         return;
       }
+      uploadImageMut.mutate(file);
       setCoverImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -239,92 +224,124 @@ export default function AddStory() {
       toast.error('Meta description is required');
       return false;
     }
+    if (!form.description.blocks.length) {
+      toast.error('Description is required');
+      return false;
+    }
+    if (!coverImage) {
+      toast.error('Cover image is required');
+      return false;
+    }
+    if (!pdfFile) {
+      toast.error('PDF is required');
+      return false;
+    }
     return true;
   };
 
-  const prepareFormData = () => {
-    const description = textToEditorContent(descriptionText);
-    const highlights = textToEditorContent(highlightsText);
-
+  const prepareFormData = (status: 'DRAFT' | 'SUBMITTED') => {
     return {
-      ...form,
-      description,
-      highlights,
+      title: form.articleTitle,
+      shortTitle: form.shortTitle,
+      slug: form.slugIntro,
+      excerpt: form.slugIntro.slice(0, 100),
+      content: form.description,
+      highlights: form.highlights.blocks.length ? form.highlights : undefined,
+      storyType: form.type === 'STORY' ? 'NEWS' : 'BLOG',
+      status,
+      mandal: form.mandal,
+      district: form.district,
+      place: form.place,
+      photoCaption: form.photoCaption,
+      photoCredit: form.photoCredit,
       storyUrl: form.storyUrl || form.articleTitle.toLowerCase().replace(/\s+/g, '-'),
+      metaTags: {
+        metaKeywords: form.seo.metaKeywords,
+        metaDescription: form.seo.metaDescription,
+        googleBot: form.seo.googleBot,
+        excludeIA: form.seo.excludeIA,
+      }
     };
+  };
+
+  const uploadRequiredAssets = async (): Promise<StoryAssetInput[]> => {
+    if (!coverImage || !pdfFile) {
+      throw new Error('Cover image and PDF are required');
+    }
+
+    const [coverRes, pdfRes] = await Promise.all([
+      storageApi.uploadImage(coverImage),
+      storageApi.uploadPdf(pdfFile),
+    ]);
+
+    if (coverRes.data.fileUrl) {
+      setCoverImagePreview(coverRes.data.fileUrl);
+    }
+
+    return [
+      { mediaId: coverRes.data.id, isCover: true, order: 0 },
+      { mediaId: pdfRes.data.id, isCover: false, order: 1 },
+    ];
   };
 
   const handleSaveDraft = async () => {
     if (!validateForm()) return;
     setIsSaving(true);
 
-    const payload = prepareFormData();
+    try {
+      const assets = await uploadRequiredAssets();
+      const payload = { ...prepareFormData('DRAFT'), assets };
 
-    createStoryMut.mutate(payload, {
-      onSuccess: async (response: any) => {
-        const storyId = response.data.id;
-
-        try {
-          if (coverImage && storyId) {
-            await storyApi.uploadCoverImage(storyId, coverImage);
-          }
-          if (pdfFile && storyId) {
-            await storyApi.uploadPDF(storyId, pdfFile);
-          }
+      createStoryMut.mutate(payload, {
+        onSuccess: async () => {
           clearDraftStorage();
           toast.success('Story saved as draft');
           navigate('/user/stories/view');
-        } catch (error) {
-          toast.error('Failed to upload files');
+          setIsSaving(false);
+        },
+        onError: (error) => {
+          toast.error('Failed to save draft');
           console.error(error);
-        } finally {
           setIsSaving(false);
         }
-      },
-      onError: (error) => {
-        toast.error('Failed to save draft');
-        console.error(error);
-        setIsSaving(false);
-      }
-    });
+      });
+    } catch (error) {
+      toast.error('Failed to upload files');
+      console.error(error);
+      setIsSaving(false);
+    }
   };
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
     setIsSaving(true);
 
-    const payload = {
-      ...prepareFormData(),
-      scheduleAt: form.schedulePost ? new Date().toISOString() : undefined,
-    };
+    try {
+      const assets = await uploadRequiredAssets();
+      const payload = {
+        ...prepareFormData('SUBMITTED'),
+        scheduleAt: form.schedulePost ? new Date().toISOString() : undefined,
+        assets,
+      };
 
-    createStoryMut.mutate(payload, {
-      onSuccess: async (response: any) => {
-        const storyId = response.data.id;
-
-        try {
-          if (coverImage && storyId) {
-            await storyApi.uploadCoverImage(storyId, coverImage);
-          }
-          if (pdfFile && storyId) {
-            await storyApi.uploadPDF(storyId, pdfFile);
-          }
+      createStoryMut.mutate(payload, {
+        onSuccess: async () => {
           clearDraftStorage();
           toast.success('Story submitted successfully');
           navigate('/user/stories/view');
-        } catch (error) {
-          toast.error('Failed to upload files');
+          setIsSaving(false);
+        },
+        onError: (error) => {
+          toast.error('Failed to submit story');
           console.error(error);
-        } finally {
           setIsSaving(false);
         }
-      },
-      onError: (error) => {
-        toast.error('Failed to submit story');
-        console.error(error);
-        setIsSaving(false);
-      }
-    });
+      });
+    } catch (error) {
+      toast.error('Failed to upload files');
+      console.error(error);
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -514,8 +531,8 @@ export default function AddStory() {
           <div>
             <label className="custom-label">Description</label>
             <RichTextEditor
-              value={descriptionText}
-              onChange={setDescriptionText}
+              value={form.description}
+              onChange={(val) => handleInputChange('description', val)}
               rows={8}
             />
           </div>
@@ -653,8 +670,8 @@ export default function AddStory() {
               <div className="flex flex-col">
                 <label className="custom-label">Highlights</label>
                 <RichTextEditor
-                  value={highlightsText}
-                  onChange={setHighlightsText}
+                  value={form.highlights}
+                  onChange={(val) => handleInputChange('highlights', val)}
                   rows={4}
                 />
               </div>

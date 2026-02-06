@@ -1,3 +1,4 @@
+import { Prisma } from '../generated/prisma/client';
 import prisma from "../db";
 import CustomError from "../errors/customError";
 import argon2 from "argon2";
@@ -5,6 +6,10 @@ import { ErrorCode } from "../errors/errorCode";
 import { getManagerId } from "../utils/managerId";
 
 export class UserService {
+    static async getCurrentUser(userId: string) {
+        return this.getUserById(userId);
+    }
+
     static async getUsers(params: {
         page: number;
         limit: number;
@@ -16,38 +21,54 @@ export class UserService {
         const skip = (page - 1) * limit;
 
         const where: any = {};
+        if (status) where.status = status;
+        // Role filtering would need to be handled carefully in raw query or pre-filtered
+
+        let users: any[];
+        let total: number;
 
         if (search) {
-            where.OR = [
-                { name: { contains: search, mode: "insensitive" } },
-                { email: { contains: search, mode: "insensitive" } },
-                { phone: { contains: search } }
-            ];
+            const searchTerm = `%${search}%`;
+            // Using raw SQL for relevance sorting via ILIKE and similarity
+            users = await prisma.$queryRaw`
+                SELECT u.*, p.*, 
+                (similarity(u.name, ${search}) * 2 + similarity(u.email, ${search})) as relevance
+                FROM "User" u
+                LEFT JOIN "UserProfile" p ON u.id = p."userId"
+                WHERE (u.name ILIKE ${searchTerm} OR u.email ILIKE ${searchTerm} OR u.phone ILIKE ${searchTerm})
+                ${status ? Prisma.sql`AND u.status = ${status}` : Prisma.empty}
+                ORDER BY relevance DESC
+                LIMIT ${limit} OFFSET ${skip}
+            `;
+
+            const countResult: any[] = await prisma.$queryRaw`
+                SELECT COUNT(*)::int as count FROM "User" u
+                WHERE (u.name ILIKE ${searchTerm} OR u.email ILIKE ${searchTerm} OR u.phone ILIKE ${searchTerm})
+                ${status ? Prisma.sql`AND u.status = ${status}` : Prisma.empty}
+            `;
+            total = countResult[0].count;
+        } else {
+            [users, total] = await Promise.all([
+                prisma.user.findMany({
+                    where,
+                    skip,
+                    take: limit,
+                    include: {
+                        profile: true,
+                        roles: { include: { role: true } },
+                        manager: { select: { id: true, name: true, email: true } },
+                        _count: { select: { stories: true, subordinates: true } }
+                    },
+                    orderBy: { createdAt: "desc" }
+                }),
+                prisma.user.count({ where })
+            ]);
         }
 
-        if (status) where.status = status;
-
-        const [users, total] = await Promise.all([
-            prisma.user.findMany({
-                where,
-                skip,
-                take: limit,
-                include: {
-                    profile: true,
-                    roles: {
-                        include: {
-                            role: true
-                        }
-                    },
-                    manager: { select: { id: true, name: true, email: true } },
-                    _count: { select: { stories: true, subordinates: true } }
-                },
-                orderBy: { createdAt: "desc" }
-            }),
-            prisma.user.count({ where })
-        ]);
-
-        const sanitizedUsers = users.map(({ passwordHash, ...u }) => u);
+        const sanitizedUsers = users.map((u: any) => {
+            const { passwordHash, ...sanitized } = u;
+            return sanitized;
+        });
 
         return {
             users: sanitizedUsers,

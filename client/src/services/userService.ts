@@ -6,10 +6,14 @@ import type {
   UserStats,
   UserFormState,
 } from "@/types/userTypes";
+import type { User } from "@/types/authTypes";
 
 const BASE_URL = "/user";
 
 export const userApi = {
+  getCurrentUser: () =>
+    apiClient.get<ApiResponse<User>>(`${BASE_URL}/me`),
+
   getUsers: (filters: UserFilters) =>
     apiClient.get<ApiResponse<{ users: UserFormState[]; pagination: any }>>(
       `${BASE_URL}/users`,
@@ -20,7 +24,7 @@ export const userApi = {
     apiClient.get<ApiResponse<UserFormState>>(`${BASE_URL}/user/${id}`),
 
   updateUser: (id: string, data: UserFormState) =>
-    apiClient.put<ApiResponse<UserFormState>>(`${BASE_URL}/user/${id}`, data),
+    apiClient.post<ApiResponse<UserFormState>>(`${BASE_URL}/user/${id}`, data),
 
   deleteUser: (id: string) =>
     apiClient.delete(`${BASE_URL}/user/${id}`),
@@ -38,6 +42,4 @@ export const userApi = {
 
   getManager: (role: string) => 
     apiClient.get<ApiResponse<any[]>>(`${BASE_URL}/manager/${role}`)
-
-  
 };

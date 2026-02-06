@@ -123,7 +123,17 @@ export const refresh = async (req: Request, res: Response) => {
 }
 
 export const logout = async (req: Request, res: Response) => {
-  await AuthService.logoutUser(req.body.refreshToken, req);
+  const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+
+  if (refreshToken) {
+    await AuthService.logoutUser(refreshToken, req);
+  }
+
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  });
 
   res.status(200).json({
     success: true,
@@ -132,11 +142,17 @@ export const logout = async (req: Request, res: Response) => {
 }
 
 export const logoutAll = async (req: Request, res: Response) => {
-  const user = req.body.role;
-  if (user.role !== 'ADMIN') {
+  const user = req.user;
+  if (!user || !user.role?.includes('ADMIN')) {
     throw new CustomError(ErrorCode.AUTH_INVALID_CREDENTIALS);
   }
   await AuthService.logoutAllSessions(req);
+
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  });
 
   res.status(200).json({
     success: true,

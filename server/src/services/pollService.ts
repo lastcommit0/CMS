@@ -95,15 +95,19 @@ export class PollService {
         }
         const startDate = data.startsAt ? new Date(data.startsAt) : new Date();
         const endDate = new Date(data.endsAt);
-        if(endDate <= startDate) {
+        if (endDate <= startDate) {
             throw new CustomError(ErrorCode.POLL_EXPIRED);
         }
         let status: "INACTIVE" | "ACTIVE" | "EXPIRED" = "INACTIVE";
-        const now = new Date();
-        if(now >= startDate && now < endDate){
-            status = "ACTIVE";
-        }else if(now >= endDate){
-            status = "EXPIRED";
+        if (data.status) {
+            status = data.status;
+        } else {
+            const now = new Date();
+            if (now >= startDate && now < endDate) {
+                status = "ACTIVE";
+            } else if (now >= endDate) {
+                status = "EXPIRED";
+            }
         }
         return prisma.poll.create({
             data: {
@@ -132,7 +136,7 @@ export class PollService {
             },
             data: {
                 ...data,
-                expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined
+                endsAt: data.endsAt ? new Date(data.endsAt) : undefined
             },
             include: {
                 options: true

@@ -59,16 +59,26 @@ export const storyContentSchema = z.object({
 export const createStorySchema = z
   .object({
     title: z.string().min(1).max(500),
+    shortTitle: z.string().min(1).max(500),
     slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     excerpt: z.string().min(1).max(1000),
     content: storyContentSchema,
+    highlights: storyContentSchema.optional(),
 
-    storyType: z.enum(['NEWS', 'MAGAZINE', 'BLOG', 'VIDEO', 'PDF']),
-    status: z.enum(['DRAFT', 'REVIEW', 'PUBLISHED', 'SCHEDULED']),
+    storyType: z.enum(['NEWS', 'MAGAZINE', 'BLOG', 'VIDEO']),
+    status: z.enum(['DRAFT', 'SUBMITTED', 'REVIEW', 'PUBLISHED', 'SCHEDULED']),
 
     priority: z.number().int().min(0).optional(),
-    scheduleAt: z.iso.datetime().optional(),
+    scheduleAt: z.preprocess((arg) => {
+      if (typeof arg === "string" || arg instanceof Date) return new Date(arg);
+    }, z.date().optional()),
     sectionIds: z.array(z.string()).optional(),
+
+    mandal: z.string().optional(),
+    district: z.string().optional(),
+    place: z.string().optional(),
+    photoCaption: z.string().optional(),
+    photoCredit: z.string().optional(),
 
     metaTags: z.object({
       metaKeywords: z.string().optional(),
@@ -76,6 +86,15 @@ export const createStorySchema = z
       googleBot: z.enum(['ALLOW', 'DISALLOW']).optional(),
       excludeIA: z.boolean().optional(),
     }).optional(),
+    assets: z
+      .array(
+        z.object({
+          mediaId: z.string().min(1),
+          isCover: z.boolean().optional(),
+          order: z.number().int().min(0).optional(),
+        })
+      )
+      .min(2),
   })
   .superRefine((data, ctx) => {
     if (data.status === 'SCHEDULED' && !data.scheduleAt) {
@@ -88,9 +107,9 @@ export const createStorySchema = z
   });
 
 export const addAssetSchema = z.object({
-  type: z.enum(['IMAGE', 'VIDEO', 'PDF', 'AUDIO', 'DOCUMENT']),
-  fileUrl: z.string().url(),
-  metadata: z.any().optional()
+  mediaId: z.string().min(1),
+  isCover: z.boolean().optional(),
+  order: z.number().int().min(0).optional(),
 });
 
 export const updateStorySchema = createStorySchema.partial();
@@ -98,6 +117,6 @@ export const updateStorySchema = createStorySchema.partial();
 
 export const bulkStatusSchema = z.object({
   storyIds: z.array(z.string()),
-  storyType: z.enum(['DRAFT', 'REVIEW', 'PUBLISHED', 'SCHEDULED']).optional(),
+  storyType: z.enum(['DRAFT', 'SUBMITTED', 'REVIEW', 'PUBLISHED', 'SCHEDULED']).optional(),
   published: z.boolean().optional()
 });

@@ -4,8 +4,10 @@ import type {
     StoryFilters,
     StoryFormState,
     StoryStats,
+    CreateStoryRequest,
 } from '@/types/storyTypes';
 import { storyApi } from '@/services/storyService';
+import { storageApi } from '@/services/storageService';
 import { toast } from 'sonner';
 
 const STORY_KEYS = {
@@ -61,7 +63,7 @@ export const useCreateStory = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (data: StoryFormState) =>
+        mutationFn: (data: CreateStoryRequest) =>
             storyApi.createStory(data).then(res => res.data),
 
         onSuccess: (data) => {
@@ -247,8 +249,12 @@ export const useUploadCoverImage = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ storyId, file }: { storyId: string; file: File }) =>
-            storyApi.uploadCoverImage(storyId, file).then(res => res.data.data!),
+        mutationFn: async ({ storyId, file }: { storyId: string; file: File }) => {
+            const media = await storageApi.uploadImage(file).then(res => res.data);
+            return storyApi
+                .addAsset(storyId, { mediaId: media.id, isCover: true, order: 0 })
+                .then(res => res.data.data!);
+        },
 
         onSuccess: (_, { storyId }) => {
             queryClient.invalidateQueries({ queryKey: STORY_KEYS.detail(storyId) });
@@ -265,8 +271,12 @@ export const useUploadPDF = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ storyId, file }: { storyId: string; file: File }) =>
-            storyApi.uploadPDF(storyId, file).then(res => res.data.data!),
+        mutationFn: async ({ storyId, file }: { storyId: string; file: File }) => {
+            const media = await storageApi.uploadPdf(file).then(res => res.data);
+            return storyApi
+                .addAsset(storyId, { mediaId: media.id, isCover: false, order: 1 })
+                .then(res => res.data.data!);
+        },
 
         onSuccess: (_, { storyId }) => {
             queryClient.invalidateQueries({ queryKey: STORY_KEYS.detail(storyId) });

@@ -1,14 +1,14 @@
 import { Router } from "express";
 import catchAsync from "../middleware/catchAsync";
 import { uploadImage, uploadVideo, uploadPdf, deleteMedia, updateMedia } from "../controllers/storageController";
- import { upload } from "../config/storage";
+import { upload } from "../config/storage";
 
 const router = Router();
 
 
-router.post("/upload/image", upload.single("image"), catchAsync(uploadImage));
-router.post("/upload/video", upload.single("video"), catchAsync(uploadVideo));
-router.post("/upload/pdf", upload.single("pdf"), catchAsync(uploadPdf));
+router.post("upload/image", upload.single("image"), catchAsync(uploadImage));
+router.post("upload/video", upload.single("video"), catchAsync(uploadVideo));
+router.post("upload/pdf", upload.single("pdf"), catchAsync(uploadPdf));
 router.delete("/pdf/:id", catchAsync(deleteMedia));
 router.delete("/image/:id", catchAsync(deleteMedia));
 router.delete("/video/:id", catchAsync(deleteMedia));

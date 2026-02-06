@@ -8,16 +8,23 @@ import {
     MdOutlineFormatAlignCenter,
 } from "react-icons/md";
 
+import type { EditorContent, StoryBlock } from "@/types/storyTypes";
+
 interface RichTextEditorProps {
-    value?: string;
-    onChange: (value: string) => void;
+    value?: EditorContent;
+    onChange: (value: EditorContent) => void;
     rows?: number;
     className?: string;
     placeholder?: string;
 }
 
+const initialContent: EditorContent = {
+    version: '1.0',
+    blocks: []
+};
+
 const RichTextEditor = ({
-    value = "",
+    value = initialContent,
     onChange,
     rows = 8,
     className = "",
@@ -67,10 +74,57 @@ const RichTextEditor = ({
         "#ffa500", "#ffb6c1", "#98fb98", "#afeeee", "#f5f5dc", "#ffffff"
     ];
 
+    const blocksToHtml = (blocks: StoryBlock[]): string => {
+        if (!blocks || blocks.length === 0) return "";
+        return blocks.map(block => {
+            if (block.type === 'paragraph') {
+                return `<p>${block.data.text}</p>`;
+            }
+            if (block.type === 'heading') {
+                return `<h${block.data.level}>${block.data.text}</h${block.data.level}>`;
+            }
+            return "";
+        }).join("");
+    };
+
+    const htmlToBlocks = (html: string): StoryBlock[] => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const blocks: StoryBlock[] = [];
+
+        doc.body.childNodes.forEach((node, index) => {
+            const el = node as HTMLElement;
+            const id = `block_${Date.now()}_${index}`;
+
+            if (el.nodeName === 'P' || el.nodeType === Node.TEXT_NODE) {
+                const text = el.textContent || "";
+                if (text.trim()) {
+                    blocks.push({
+                        id,
+                        type: 'paragraph',
+                        data: { text }
+                    });
+                }
+            } else if (/^H[1-6]$/.test(el.nodeName)) {
+                blocks.push({
+                    id,
+                    type: 'heading',
+                    data: {
+                        level: parseInt(el.nodeName.substring(1)) as any,
+                        text: el.textContent || ""
+                    }
+                });
+            }
+        });
+
+        return blocks;
+    };
+
     useEffect(() => {
         if (editorRef.current && !isInternalUpdate.current) {
-            if (editorRef.current.innerHTML !== value) {
-                editorRef.current.innerHTML = value;
+            const htmlValue = blocksToHtml(value.blocks);
+            if (editorRef.current.innerHTML !== htmlValue) {
+                editorRef.current.innerHTML = htmlValue;
             }
         }
         isInternalUpdate.current = false;
@@ -79,7 +133,12 @@ const RichTextEditor = ({
     const handleInput = () => {
         if (editorRef.current) {
             isInternalUpdate.current = true;
-            onChange(editorRef.current.innerHTML);
+            const blocks = htmlToBlocks(editorRef.current.innerHTML);
+            onChange({
+                version: '1.0',
+                time: Date.now(),
+                blocks
+            });
         }
     };
 

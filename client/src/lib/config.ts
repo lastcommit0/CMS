@@ -8,3 +8,4 @@ export const PRIORITY_URL = '/priority';
 export const EPAPER_URL = '/epapers';
 export const WORKFLOW_URL = '/status';
 export const CONTACT_URL = '/contact';
+export const STORAGE_URL = '/storage';
