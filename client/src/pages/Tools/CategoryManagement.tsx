@@ -62,15 +62,14 @@ export default function CategoryManagement() {
 
   return (
     <div className="w-full min-h-screen bg-white">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-4 bg-white">
-        <header className="flex justify-between items-center pb-2 min-w-full">
-          <div className="text-[#243874] font-semibold text-[18px]">Category Management</div>
-        </header>
-      </div>
-      <div className="border-b"></div>
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden m-4">
-        <div className="overflow-x-auto">
-          <table className="min-w-[1000px] w-full border-collapse">
+      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-4 md:px-6 py-4 bg-white border-b border-gray-200">
+        <h1 className="text-[18px] font-semibold text-[#243874]">
+          Category Management
+        </h1>
+      </header>
+      <div className="p-4 md:p-6">
+        <div className="bg-white border rounded-md overflow-hidden">
+          <table className="min-w-[700px] w-full">
             <thead className="bg-gray-50 text-sm text-gray-600">
               <tr className="">
                 <th className="px-4 py-3 text-left">ID</th>

@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { LoginCredentials, RegisterData } from '@/types/authTypes';
-import { accessTokenStore } from '@/lib/api/tokenManager';
 import { authApi } from '@/services/authService';
 import { userApi } from '@/services/userService';
 import { toast } from 'sonner';
@@ -34,7 +33,6 @@ export const useCurrentUser = () => {
       const res = await userApi.getCurrentUser();
       return res.data.data!;
     },
-    enabled: !!accessTokenStore.get(),
     staleTime: 5 * 60 * 1000,
   });
 };
@@ -50,8 +48,7 @@ export const useLogin = () => {
       return res.data.data!;
     },
 
-    onSuccess: ({ user, accessToken }) => {
-      accessTokenStore.set(accessToken);
+    onSuccess: ({ user }) => {
       queryClient.setQueryData(AUTH_KEYS.user, user);
       toast.success('Login successful');
       navigate('/user/dashboard');
@@ -89,7 +86,6 @@ export const useLogout = () => {
     mutationFn: authApi.logout,
 
     onSettled: () => {
-      accessTokenStore.clear();
       queryClient.removeQueries({ queryKey: AUTH_KEYS.all });
       queryClient.setQueryData(AUTH_KEYS.user, null);
       toast.success('Logged out');
@@ -115,7 +111,6 @@ export const useLogoutAll = () => {
     mutationFn: authApi.logoutAll,
 
     onSettled: () => {
-      accessTokenStore.clear();
       queryClient.clear();
       toast.success('Logged out from all devices');
       navigate('/auth');

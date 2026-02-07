@@ -15,7 +15,7 @@ export default function PriorityManagement() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-white">
+    <div className="ml-36 w-full min-h-screen bg-white">
       <div className="text-black px-6 pt-2">
         <header className="flex justify-between items-center pb-2 min-w-full">
           <div className="text-[#243874] font-semibold text-[18px]">Priority Management</div>

@@ -1,4 +1,4 @@
-import { SquarePen, X } from "lucide-react"
+import { SquarePen, X, Loader2 } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/select"
 import { useState } from "react"
 import SearchBox from "@/components/SearchBox"
+import { useUsers } from "@/hooks/useUsers"
 
 
 
@@ -19,6 +20,8 @@ export default function Users() {
     "View Schedule Story",
     "View Story",
   ])
+  const { data, isLoading } = useUsers({ page: 1, limit: 10, search: searchQuery })
+  const users = data?.users ?? []
 
   return (
     <div className="w-full min-h-screen bg-white">
@@ -57,18 +60,52 @@ export default function Users() {
             </thead>
 
             <tbody className="divide-y">
-              {/* {MOCK_DATA.map((item) => (
-                <tr key={item.id}>
-                  <td className="px-4 py-3 text-sm">{item.id}</td>
-                  <td className="px-4 py-3 text-sm">{item.role}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600 max-w-[380px]">
-                    {item.pages}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <SquarePen className="w-4 h-4 inline cursor-pointer text-gray-600" />
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-[#243874]" />
                   </td>
                 </tr>
-              ))} */}
+              ) : users.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                    {searchQuery ? "No users found matching your search" : "No users found"}
+                  </td>
+                </tr>
+              ) : (
+                users.map((user: any) => {
+                  const name = user?.name?.trim() || "";
+                  const initials =
+                    name
+                      .split(/\s+/)
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map((part: string) => part[0]?.toUpperCase())
+                      .join("") || "U";
+
+                  return (
+                    <tr key={user.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm">{user.id.slice(0, 8)}...</td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">
+                            {initials}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{name || "Unknown"}</span>
+                            <span className="text-xs text-gray-500">
+                              {user.roles?.map((r: any) => r.role?.name).join(", ") || "N/A"}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{user.email || "—"}</td>
+                      <td className="px-4 py-3 text-sm text-center">{user.phone || "—"}</td>
+                      <td className="px-4 py-3 text-sm text-center">{user.profile?.socials || "—"}</td>
+                    </tr>
+                  )
+                })
+              )}
             </tbody>
           </table>
         </div>

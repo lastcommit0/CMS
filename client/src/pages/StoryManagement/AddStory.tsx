@@ -1,7 +1,7 @@
 import { Clipboard, Tag } from "lucide-react"
 import image from "../../assets/icons/image.svg"
 import pdf from "../../assets/icons/pdf.svg"
-import type { StoryFormState } from "@/types/storyTypes"
+import type { CreateStoryRequest, StoryFormState } from "@/types/storyTypes"
 import React, { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useCreateStory } from "@/hooks/useStories"
@@ -11,7 +11,83 @@ import RichTextEditor from "@/components/RichTextEditor/RichTextEditor"
 import { storageApi } from "@/services/storageService"
 import type { StoryAssetInput } from "@/types/storyTypes"
 import { useUploadImage } from "@/hooks/useStorage"
-import { useUploadPDF } from "@/hooks/useStories"
+import { storyApi } from "@/services/storyService"
+
+const MAX_META_DESCRIPTION_LENGTH = 160;
+const MIN_META_DESCRIPTION_LENGTH = 150;
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const ALLOWED_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
+const ALLOWED_PDF_MIME_TYPES = new Set(['application/pdf']);
+const ALLOWED_PDF_EXTENSIONS = new Set(['pdf']);
+const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const STORY_URL_REGEX = /^(?!https?:\/\/)[a-z0-9]+([.-][a-z0-9]+)*(\/[a-z0-9\-._~%!$&'()*+,;=:@/]*)?$/i;
+type SeoField = keyof StoryFormState['seo'];
+type StoryDuplicateCandidate = {
+  id: string;
+  title?: string;
+  slug?: string;
+  storyUrl?: string;
+};
+
+const stripHtmlTags = (value: string): string =>
+  value
+    .replace(/<[^>]*>/g, '')
+    .replace(/[^\x20-\x7E]/g, '')
+    .trim();
+
+const containsHtmlTags = (value: string): boolean => /<[^>]*>/.test(value);
+
+const sanitizeEditorContent = (content: StoryFormState['description']) => ({
+  ...content,
+  blocks: content.blocks.map((block) => {
+    if (block.type === 'paragraph') {
+      return {
+        ...block,
+        data: { ...block.data, text: stripHtmlTags(block.data.text || '') },
+      };
+    }
+    if (block.type === 'heading') {
+      return {
+        ...block,
+        data: { ...block.data, text: stripHtmlTags(block.data.text || '') },
+      };
+    }
+    return block;
+  }),
+});
+
+const hasUnsafeEditorContent = (content: StoryFormState['description']): boolean =>
+  content.blocks.some((block) => {
+    if (block.type === 'paragraph' || block.type === 'heading') {
+      return containsHtmlTags(block.data.text || '');
+    }
+    return false;
+  });
+
+const getFileExtension = (name: string): string =>
+  name.includes('.') ? name.split('.').pop()!.toLowerCase() : '';
+
+const extractStoryCandidates = (payload: unknown): StoryDuplicateCandidate[] => {
+  if (!payload || typeof payload !== 'object') {
+    return [];
+  }
+
+  const rawPayload = payload as { stories?: unknown; data?: { data?: unknown } | unknown };
+  const stories = Array.isArray(rawPayload.stories)
+    ? rawPayload.stories
+    : rawPayload.data && typeof rawPayload.data === 'object' && Array.isArray((rawPayload.data as { data?: unknown }).data)
+      ? (rawPayload.data as { data: unknown[] }).data
+      : Array.isArray(rawPayload.data)
+        ? rawPayload.data
+        : [];
+
+  return stories.filter((item): item is StoryDuplicateCandidate => {
+    if (!item || typeof item !== 'object') return false;
+    const candidate = item as { id?: unknown };
+    return typeof candidate.id === 'string' && candidate.id.length > 0;
+  });
+};
 
 const initialStoryFormState: StoryFormState = {
   type: 'STORY',
@@ -52,7 +128,6 @@ export default function AddStory() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const uploadImageMut = useUploadImage();
-  const uploadPdfMut = useUploadPDF();
 
 
   const DRAFT_STORAGE_KEY = 'cms:add-story-draft:v1';
@@ -62,18 +137,57 @@ export default function AddStory() {
       const stored = localStorage.getItem(DRAFT_STORAGE_KEY);
       if (!stored) {
         draftHydratedRef.current = true;
-        return;
+      } else {
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed.form) {
+          setForm(parsed.form);
+        }
+        if (parsed && typeof parsed.tagInput === 'string') {
+          setTagInput(parsed.tagInput);
+        }
+        draftHydratedRef.current = true;
       }
-      const parsed = JSON.parse(stored);
-      if (parsed && parsed.form) {
-        setForm(parsed.form);
-      }
-      if (parsed && typeof parsed.tagInput === 'string') {
-        setTagInput(parsed.tagInput);
+
+      // Check for News Agent Data Handoff
+      const agentDataStr = sessionStorage.getItem('newsAgent:generatedStory');
+      if (agentDataStr) {
+        const agentData = JSON.parse(agentDataStr);
+        setForm(prev => ({
+          ...prev,
+          articleTitle: agentData.title || prev.articleTitle,
+          shortTitle: agentData.shortTitle || prev.shortTitle,
+          slugIntro: agentData.slug || prev.slugIntro,
+          description: agentData.content || prev.description,
+          highlights: agentData.highlights || prev.highlights,
+          mandal: agentData.mandal || prev.mandal,
+          district: agentData.district || prev.district,
+          seo: {
+            ...prev.seo,
+            metaKeywords: agentData.metaTags?.metaKeywords || prev.seo.metaKeywords,
+            metaDescription: agentData.metaTags?.metaDescription || prev.seo.metaDescription,
+          }
+        }));
+
+        // Handle Automatic Image Placement
+        if (agentData.imageUrl && !coverImagePreview) {
+          fetch(agentData.imageUrl)
+            .then(res => res.blob())
+            .then(blob => {
+              const file = new File([blob], 'cover-image.jpg', { type: 'image/jpeg' });
+              setCoverImage(file);
+              setCoverImagePreview(agentData.imageUrl);
+              // Proactively upload to storage
+              uploadImageMut.mutate(file);
+            })
+            .catch(err => console.error('Failed to fetch agent image:', err));
+        }
+
+        toast.success('Story imported from News Agent');
+        // We keep it in session for now in case of refresh, 
+        // but clear it on success or if user wants to discard
       }
     } catch (error) {
-      console.warn('Failed to restore draft from storage', error);
-    } finally {
+      console.warn('Failed to restore draft or agent data', error);
       draftHydratedRef.current = true;
     }
   }, []);
@@ -107,6 +221,7 @@ export default function AddStory() {
   const clearDraftStorage = () => {
     try {
       localStorage.removeItem(DRAFT_STORAGE_KEY);
+      sessionStorage.removeItem('newsAgent:generatedStory');
     } catch (error) {
       console.warn('Failed to clear draft storage', error);
     }
@@ -123,11 +238,11 @@ export default function AddStory() {
   }, [form.articleTitle]);
 
 
-  const handleInputChange = (field: keyof StoryFormState, value: any) => {
+  const handleInputChange = <K extends keyof StoryFormState>(field: K, value: StoryFormState[K]) => {
     setForm(prev => ({ ...prev, [field]: value }));
   }
 
-  const handleSEOChange = (field: string, value: any) => {
+  const handleSEOChange = <K extends SeoField>(field: K, value: StoryFormState['seo'][K]) => {
     setForm(prev => ({
       ...prev,
       seo: { ...prev.seo, [field]: value }
@@ -156,11 +271,12 @@ export default function AddStory() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 10 * 1024 * 1024) {
+      if (file.size > MAX_FILE_SIZE_BYTES) {
         toast.error('Image size should be less than 10MB');
         return;
       }
-      if (!file.type.startsWith('image/')) {
+      const fileExtension = getFileExtension(file.name);
+      if (!ALLOWED_IMAGE_MIME_TYPES.has(file.type) || !ALLOWED_IMAGE_EXTENSIONS.has(fileExtension)) {
         toast.error('Only image files are allowed');
         return;
       }
@@ -177,11 +293,12 @@ export default function AddStory() {
   const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 10 * 1024 * 1024) {
+      if (file.size > MAX_FILE_SIZE_BYTES) {
         toast.error('PDF file size should be less than 10MB');
         return;
       }
-      if (file.type !== 'application/pdf') {
+      const fileExtension = getFileExtension(file.name);
+      if (!ALLOWED_PDF_MIME_TYPES.has(file.type) || !ALLOWED_PDF_EXTENSIONS.has(fileExtension)) {
         toast.error('Only PDF files are allowed');
         return;
       }
@@ -195,7 +312,60 @@ export default function AddStory() {
     toast.success('URL copied to clipboard');
   }
 
-  const validateForm = (): boolean => {
+  const checkForDuplicateStoryData = async (): Promise<boolean> => {
+    try {
+      const storyUrl = form.storyUrl.trim().toLowerCase();
+      const title = form.articleTitle.trim().toLowerCase();
+      const slug = form.slugIntro.trim().toLowerCase();
+      const searchTerms = Array.from(new Set([title, slug, storyUrl].filter(Boolean)));
+      const candidates: StoryDuplicateCandidate[] = [];
+
+      await Promise.all(
+        searchTerms.map(async (term) => {
+          const response = await storyApi.getStories({ search: term, page: 1, limit: 50 });
+          const stories = extractStoryCandidates(response.data);
+          candidates.push(...stories);
+        })
+      );
+
+      const uniqueCandidates = Array.from(
+        new Map(candidates.map((item) => [item.id, item])).values()
+      );
+      const duplicateTitle = uniqueCandidates.find((item) =>
+        typeof item?.title === 'string' && item.title.trim().toLowerCase() === title
+      );
+      const duplicateSlug = uniqueCandidates.find((item) =>
+        typeof item?.slug === 'string' && item.slug.trim().toLowerCase() === slug
+      );
+      const duplicateStoryUrl = uniqueCandidates.find((item) =>
+        typeof item?.storyUrl === 'string' && item.storyUrl.trim().toLowerCase() === storyUrl
+      );
+
+      if (duplicateTitle) {
+        toast.error('A story with this article title already exists');
+        return false;
+      }
+      if (duplicateSlug || duplicateStoryUrl) {
+        toast.error('Story URL / slug already exists');
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Failed to validate duplicate story data', error);
+      toast.error('Unable to verify duplicate title/slug right now');
+      return false;
+    }
+  };
+
+  const validateForm = async (): Promise<boolean> => {
+    const normalizedStoryUrl = form.storyUrl.trim();
+    const normalizedSlug = form.slugIntro.trim().toLowerCase();
+    const normalizedMetaDescription = form.seo.metaDescription.trim();
+    const keywords = form.seo.metaKeywords
+      .split(',')
+      .map((keyword) => keyword.trim())
+      .filter(Boolean);
+
     if (!form.articleTitle.trim()) {
       toast.error('Article title is required');
       return false;
@@ -206,6 +376,14 @@ export default function AddStory() {
     }
     if (!form.slugIntro.trim()) {
       toast.error('Slug intro is required');
+      return false;
+    }
+    if (!SLUG_REGEX.test(normalizedSlug)) {
+      toast.error('Slug must contain only lowercase letters, numbers, and hyphens');
+      return false;
+    }
+    if (normalizedStoryUrl && !STORY_URL_REGEX.test(normalizedStoryUrl)) {
+      toast.error('Story URL is invalid. Use domain/path without protocol');
       return false;
     }
     if (!form.mandal.trim()) {
@@ -224,6 +402,29 @@ export default function AddStory() {
       toast.error('Meta description is required');
       return false;
     }
+    if (
+      normalizedMetaDescription.length < MIN_META_DESCRIPTION_LENGTH ||
+      normalizedMetaDescription.length > MAX_META_DESCRIPTION_LENGTH
+    ) {
+      toast.error('Meta description must be between 150 and 160 characters');
+      return false;
+    }
+    if (keywords.length === 0) {
+      toast.error('Meta keywords should be comma-separated values');
+      return false;
+    }
+    if (keywords.some((keyword) => keyword.length < 2 || keyword.length > 50 || !/^[a-z0-9\s-]+$/i.test(keyword))) {
+      toast.error('Each meta keyword must be 2-50 chars and use letters, numbers, spaces or hyphens');
+      return false;
+    }
+    if (containsHtmlTags(form.articleTitle) || containsHtmlTags(form.shortTitle) || containsHtmlTags(form.slugIntro)) {
+      toast.error('HTML tags are not allowed in story title fields');
+      return false;
+    }
+    if (hasUnsafeEditorContent(form.description) || hasUnsafeEditorContent(form.highlights)) {
+      toast.error('HTML tags are not allowed in description/highlights text');
+      return false;
+    }
     if (!form.description.blocks.length) {
       toast.error('Description is required');
       return false;
@@ -236,28 +437,37 @@ export default function AddStory() {
       toast.error('PDF is required');
       return false;
     }
-    return true;
+    return checkForDuplicateStoryData();
   };
 
   const prepareFormData = (status: 'DRAFT' | 'SUBMITTED') => {
+    const sanitizedDescription = sanitizeEditorContent(form.description);
+    const sanitizedHighlights = sanitizeEditorContent(form.highlights);
+    const sanitizedStoryUrl = stripHtmlTags(form.storyUrl) || stripHtmlTags(form.articleTitle).toLowerCase().replace(/\s+/g, '-');
+    const sanitizedMetaKeywords = form.seo.metaKeywords
+      .split(',')
+      .map((keyword) => stripHtmlTags(keyword))
+      .filter(Boolean)
+      .join(', ');
+
     return {
-      title: form.articleTitle,
-      shortTitle: form.shortTitle,
-      slug: form.slugIntro,
-      excerpt: form.slugIntro.slice(0, 100),
-      content: form.description,
-      highlights: form.highlights.blocks.length ? form.highlights : undefined,
+      title: stripHtmlTags(form.articleTitle),
+      shortTitle: stripHtmlTags(form.shortTitle),
+      slug: stripHtmlTags(form.slugIntro).toLowerCase(),
+      excerpt: stripHtmlTags(form.slugIntro).slice(0, 100),
+      content: sanitizedDescription,
+      highlights: sanitizedHighlights.blocks.length ? sanitizedHighlights : undefined,
       storyType: form.type === 'STORY' ? 'NEWS' : 'BLOG',
       status,
-      mandal: form.mandal,
-      district: form.district,
-      place: form.place,
-      photoCaption: form.photoCaption,
-      photoCredit: form.photoCredit,
-      storyUrl: form.storyUrl || form.articleTitle.toLowerCase().replace(/\s+/g, '-'),
+      mandal: stripHtmlTags(form.mandal),
+      district: form.district ? stripHtmlTags(form.district) : undefined,
+      place: form.place ? stripHtmlTags(form.place) : undefined,
+      photoCaption: form.photoCaption ? stripHtmlTags(form.photoCaption) : undefined,
+      photoCredit: form.photoCredit ? stripHtmlTags(form.photoCredit) : undefined,
+      storyUrl: sanitizedStoryUrl,
       metaTags: {
-        metaKeywords: form.seo.metaKeywords,
-        metaDescription: form.seo.metaDescription,
+        metaKeywords: sanitizedMetaKeywords,
+        metaDescription: stripHtmlTags(form.seo.metaDescription),
         googleBot: form.seo.googleBot,
         excludeIA: form.seo.excludeIA,
       }
@@ -285,12 +495,12 @@ export default function AddStory() {
   };
 
   const handleSaveDraft = async () => {
-    if (!validateForm()) return;
+    if (!(await validateForm())) return;
     setIsSaving(true);
 
     try {
       const assets = await uploadRequiredAssets();
-      const payload = { ...prepareFormData('DRAFT'), assets };
+      const payload = { ...prepareFormData('DRAFT'), assets } as unknown as CreateStoryRequest;
 
       createStoryMut.mutate(payload, {
         onSuccess: async () => {
@@ -313,7 +523,7 @@ export default function AddStory() {
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) return;
+    if (!(await validateForm())) return;
     setIsSaving(true);
 
     try {
@@ -322,7 +532,7 @@ export default function AddStory() {
         ...prepareFormData('SUBMITTED'),
         scheduleAt: form.schedulePost ? new Date().toISOString() : undefined,
         assets,
-      };
+      } as unknown as CreateStoryRequest;
 
       createStoryMut.mutate(payload, {
         onSuccess: async () => {
@@ -549,6 +759,9 @@ export default function AddStory() {
                 value={form.seo.metaKeywords}
                 onChange={(e) => handleSEOChange('metaKeywords', e.target.value)}
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Use comma-separated keywords (example: politics, local news, election)
+              </p>
             </div>
 
             <div>
@@ -561,6 +774,9 @@ export default function AddStory() {
                 onChange={(e) => handleSEOChange('metaDescription', e.target.value)}
                 value={form.seo.metaDescription}
               />
+              <p className={`mt-1 text-xs ${form.seo.metaDescription.trim().length >= MIN_META_DESCRIPTION_LENGTH && form.seo.metaDescription.trim().length <= MAX_META_DESCRIPTION_LENGTH ? 'text-green-600' : 'text-amber-600'}`}>
+                {form.seo.metaDescription.trim().length}/{MAX_META_DESCRIPTION_LENGTH} characters (recommended {MIN_META_DESCRIPTION_LENGTH}-{MAX_META_DESCRIPTION_LENGTH})
+              </p>
             </div>
           </div>
 

@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { accessTokenStore } from "@/lib/api/tokenManager";
 import { userApi } from "@/services/userService";
 import type { User } from "@/types/authTypes";
 
@@ -19,7 +18,6 @@ const AUTH_USER_KEY = ["auth", "current-user"] as const;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const token = accessTokenStore.get();
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: AUTH_USER_KEY,
@@ -27,7 +25,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await userApi.getCurrentUser();
       return res.data.data!;
     },
-    enabled: !!token,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -36,7 +33,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const clearUser = useCallback(() => {
-    accessTokenStore.clear();
     queryClient.setQueryData(AUTH_USER_KEY, null);
   }, [queryClient]);
 
@@ -49,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       user: data ?? null,
-      isAuthenticated: !!data && !!accessTokenStore.get(),
+      isAuthenticated: !!data,
       isLoading: isLoading || isFetching,
       setUser,
       clearUser,

@@ -22,14 +22,12 @@ export class UserService {
 
         const where: any = {};
         if (status) where.status = status;
-        // Role filtering would need to be handled carefully in raw query or pre-filtered
 
         let users: any[];
         let total: number;
 
-        if (search) {
+        if (search?.trim()) {
             const searchTerm = `%${search}%`;
-            // Using raw SQL for relevance sorting via ILIKE and similarity
             users = await prisma.$queryRaw`
                 SELECT u.*, p.*, 
                 (similarity(u.name, ${search}) * 2 + similarity(u.email, ${search})) as relevance

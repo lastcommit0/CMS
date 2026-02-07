@@ -1,22 +1,27 @@
 import { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { accessTokenStore } from "@/lib/api/tokenManager";
+import { useNavigate } from "react-router-dom";
+import { userApi } from "@/services/userService";
 
 export default function OAuthCallback() {
-  const [params] = useSearchParams();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = params.get("token");
+    let cancelled = false;
+    userApi.getCurrentUser()
+      .then(() => {
+        if (!cancelled) {
+          navigate("/user/dashboard", { replace: true });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          navigate("/auth", { replace: true });
+        }
+      });
 
-    if (!token) {
-      navigate("/auth");
-      return;
-    }
-
-    accessTokenStore.set(token);
-
-    navigate("/user/dashboard", { replace: true });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return <p className="p-6">Signing you in...</p>;

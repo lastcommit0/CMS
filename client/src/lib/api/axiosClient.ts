@@ -3,7 +3,6 @@ import axios, {
     AxiosError,
     type InternalAxiosRequestConfig,
 } from 'axios';
-import { accessTokenStore } from './tokenManager';
 import { refreshAccessToken } from './authRefresh';
 import { HttpError } from './httpError';
 
@@ -36,16 +35,12 @@ const apiClient: AxiosInstance = axios.create({
 });
 
 
-apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-    const token = accessTokenStore.get();
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-});
-
-
-apiClient.interceptors.response.use((res) => res, async (error: AxiosError) => {
+apiClient.interceptors.response.use(
+    //this we call success handler
+    (res) => res, 
+    
+    //this we call error handler
+    async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
         _retry?: boolean;
     };
@@ -54,16 +49,17 @@ apiClient.interceptors.response.use((res) => res, async (error: AxiosError) => {
         originalRequest._retry = true;
 
         try {
-            console.log("Refreshing access token...");
-            const newToken = await refreshAccessToken();
-            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            await refreshAccessToken();
             return apiClient(originalRequest);
         } catch {
-            accessTokenStore.clear();
             window.dispatchEvent(new CustomEvent('auth-expired'));
         }
     }
-    console.log('API Error going:', error);
+    const url = originalRequest?.url ?? '';
+    const isMeRequest = typeof url === 'string' && url.includes('/user/me');
+    if (!(error.response?.status === 401 && isMeRequest)) {
+        console.log('API Error going:', error);
+    }
     return Promise.reject(new HttpError(error));
 }
 );

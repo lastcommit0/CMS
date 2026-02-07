@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useManagers } from "@/hooks/useUsers";
 import { useRegister } from "@/hooks/useAuth";
 import { useUpdateUser } from "@/hooks/useUsers";
-import { useUploadImage } from "@/hooks/useStorage";
+import { useUploadImage, useUploadPdf } from "@/hooks/useStorage";
 import { toast } from "sonner";
 import { USER_ROLES, DESIGNATIONS, JOB_TYPES, type UserFormState, userFormSchema } from "@/types/userTypes";
 import { useForm } from "react-hook-form";
@@ -25,40 +25,87 @@ interface Manager {
   email: string;
 }
 
-const getDefaultValues = (user?: UserFormState | null): UserFormState => ({
-  firstName: user?.firstName ?? "",
-  lastName: user?.lastName ?? "",
-  email: user?.email ?? "",
-  phone: user?.phone ?? "",
-  password: "",
-  role: user?.role ?? "EDITOR",
-  designation: user?.designation,
-  jobType: user?.jobType,
-  location: user?.location ?? "",
-  bio: user?.bio ?? "",
-  managerId: user?.managerId,
-  avatar: user?.avatar,
-});
-
 export default function NewUser({ closeModal, userToEdit, onSuccess }: NewUserProps) {
   const isEditMode = !!userToEdit;
   const [showPassword, setShowPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const blobUrlRef = useRef<string | null>(null);
 
-  const { register, handleSubmit: handleFormSubmit, watch, setValue } = useForm<UserFormState>({
+  const { register, handleSubmit: handleFormSubmit, watch, setValue, reset, formState: { errors } } = useForm<UserFormState>({
     resolver: zodResolver(userFormSchema),
-    defaultValues: getDefaultValues(userToEdit),
+    defaultValues: userToEdit
+      ? {
+        firstName: userToEdit.firstName,
+        lastName: userToEdit.lastName,
+        email: userToEdit.email,
+        phone: userToEdit.phone ?? "",
+        password: "",
+        role: userToEdit.role,
+        designation: userToEdit.designation,
+        jobType: userToEdit.jobType,
+        location: userToEdit.location ?? "",
+        bio: userToEdit.bio ?? "",
+        managerId: userToEdit.managerId ?? undefined,
+        avatar: userToEdit.avatar ?? undefined,
+      }
+      : {
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        password: "",
+        role: "EDITOR",
+        designation: undefined,
+        jobType: undefined,
+        location: "",
+        bio: "",
+        managerId: undefined,
+        avatar: undefined,
+      },
   });
 
   const formValues = watch();
   const currentRole = watch("role");
 
+  useEffect(() => {
+    reset(
+      userToEdit
+        ? {
+          firstName: userToEdit.firstName,
+          lastName: userToEdit.lastName,
+          email: userToEdit.email,
+          phone: userToEdit.phone ?? "",
+          password: "",
+          role: userToEdit.role,
+          designation: userToEdit.designation,
+          jobType: userToEdit.jobType,
+          location: userToEdit.location ?? "",
+          bio: userToEdit.bio ?? "",
+          managerId: userToEdit.managerId ?? undefined,
+          avatar: userToEdit.avatar ?? undefined,
+        }
+        : {
+          firstName: "",
+          lastName: "",
+          email: "",
+          phone: "",
+          password: "",
+          role: "EDITOR",
+          designation: undefined,
+          jobType: undefined,
+          location: "",
+          bio: "",
+          managerId: undefined,
+          avatar: undefined,
+        }
+    );
+  }, [userToEdit, reset]);
+
   const { data: managers, isLoading: managersLoading } = useManagers(currentRole);
   const registerMutation = useRegister();
   const updateUserMutation = useUpdateUser();
   const uploadImageMutation = useUploadImage();
+  const uploadPdfMutation = useUploadPdf();
 
   const managerOptions: Array<{ label: string; value: string }> =
     managers?.map((m: Manager) => ({
@@ -118,36 +165,37 @@ export default function NewUser({ closeModal, userToEdit, onSuccess }: NewUserPr
     return true;
   };
 
-  const buildPayload = (data: UserFormState) => {
-    const {
-      firstName,
-      lastName,
-      email,
-      phone,
-      designation,
-      jobType,
-      location,
-      bio,
-      managerId,
-      avatar,
-      password,
-      role,
-    } = data;
+  // const handleState = () => {
+  //   try{
 
-    return {
-      firstName,
-      lastName,
-      email,
-      phone,
-      designation,
-      jobType,
-      bio,
-      location: location || undefined,
-      managerId: managerId || undefined,
-      avatar: avatar || undefined,
-      ...(password ? { password } : {}),
-      ...(!isEditMode ? { role } : {}),
+  //   }catch(e){
+  //   toast.error("An error occurred while processing the file");
+  //   }
+  // }
+
+  const buildPayload = (data: UserFormState) => {
+    const payload: any = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      designation: data.designation,
+      jobType: data.jobType,
+      location: data.location || undefined,
+      bio: data.bio,
+      managerId: data.managerId || undefined,
+      avatar: data.avatar || undefined,
     };
+
+    if (data.password) {
+      payload.password = data.password;
+    }
+
+    if (!isEditMode) {
+      payload.role = data.role;
+    }
+
+    return payload;
   };
 
   const handleSubmit = async (data: UserFormState) => {
@@ -188,67 +236,37 @@ export default function NewUser({ closeModal, userToEdit, onSuccess }: NewUserPr
     }
   };
 
-  const handleImageUpdate = async (e: React.ChangeEvent<HTMLInputElement>) => {
-
-  } 
-
-  const handleImageDelete = async (e: React.ChangeEvent<HTMLInputElement>) => {
-
-  }
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: any) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("Only JPG or PNG images are allowed");
-      e.currentTarget.value = "";
-      return;
-    }
-
-    // Validate file size
+    const localPreview = URL.createObjectURL(file);
+    setAvatarPreview(localPreview);
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Image must be smaller than 5MB");
+      if (localPreview.startsWith("blob:")) {
+        URL.revokeObjectURL(localPreview);
+      }
+      setAvatarPreview(formValues.avatar || null);
       e.currentTarget.value = "";
       return;
     }
-
-    // Revoke previous blob URL if it exists
-    if (blobUrlRef.current) {
-      URL.revokeObjectURL(blobUrlRef.current);
-      blobUrlRef.current = null;
-    }
-
-    // Create and store new blob URL for preview
-    const localPreview = URL.createObjectURL(file);
-    blobUrlRef.current = localPreview;
-    setAvatarPreview(localPreview);
-
     try {
       const uploaded = await uploadImageMutation.mutateAsync(file);
-      const fileUrl = uploaded?.fileUrl || uploaded?.data?.fileUrl;
-      
+      const fileUrl = (uploaded as any)?.fileUrl || (uploaded as any)?.data?.fileUrl;
       if (fileUrl) {
         setValue("avatar", fileUrl, { shouldDirty: true });
         setAvatarPreview(fileUrl);
-        toast.success("Photo uploaded");
-        
-        if (blobUrlRef.current) {
-          URL.revokeObjectURL(blobUrlRef.current);
-          blobUrlRef.current = null;
-        }
       } else {
         toast.error("Upload succeeded but no URL returned");
         setAvatarPreview(formValues.avatar || null);
       }
-    } catch (error) {
-      toast.error("Photo upload failed");
+      toast.success("Photo uploaded");
+    } catch {
       setAvatarPreview(formValues.avatar || null);
     } finally {
       e.currentTarget.value = "";
     }
-  };
+  }
 
   const roleOptions = USER_ROLES.map(role => ({ label: role, value: role }));
   const designationOptions = DESIGNATIONS.map(designation => ({ label: designation, value: designation }));
@@ -257,21 +275,19 @@ export default function NewUser({ closeModal, userToEdit, onSuccess }: NewUserPr
   const isSubmitting = registerMutation.isPending || updateUserMutation.isPending;
   const isUploading = uploadImageMutation.isPending;
 
-  // Initialize avatar preview from form values
   useEffect(() => {
     if (formValues.avatar) {
       setAvatarPreview(formValues.avatar);
     }
   }, [formValues.avatar]);
 
-  // Cleanup blob URLs on unmount
   useEffect(() => {
     return () => {
-      if (blobUrlRef.current) {
-        URL.revokeObjectURL(blobUrlRef.current);
+      if (avatarPreview && avatarPreview.startsWith("blob:")) {
+        URL.revokeObjectURL(avatarPreview);
       }
     };
-  }, []);
+  }, [avatarPreview]);
 
   return (
     <div className="fixed min-h-screen inset-0 z-50 flex justify-end items-start">
@@ -280,9 +296,6 @@ export default function NewUser({ closeModal, userToEdit, onSuccess }: NewUserPr
       <div
         className="relative min-h-screen w-[520px] max-h-screen overflow-y-auto bg-white shadow-xl z-10"
         onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label={isEditMode ? "Edit user" : "Create user"}
       >
         <header className="sticky top-0 bg-white z-10 flex items-center justify-between px-6 py-4 border-b">
           <h2 className="font-semibold text-[#243874] text-lg">
@@ -297,7 +310,7 @@ export default function NewUser({ closeModal, userToEdit, onSuccess }: NewUserPr
           </button>
         </header>
 
-        <form className="p-6 space-y-6" onSubmit={handleFormSubmit(handleSubmit)}>
+        <div className="p-6 space-y-6">
           <div className="flex items-center gap-4">
             {avatarPreview ? (
               <img
@@ -307,7 +320,7 @@ export default function NewUser({ closeModal, userToEdit, onSuccess }: NewUserPr
               />
             ) : (
               <div className="size-20 rounded-full bg-blue-200 text-gray-600 flex items-center justify-center text-xl font-bold aspect-square">
-                <Camera />
+                <Camera></Camera>
               </div>
             )}
             <div className="flex flex-col">
@@ -472,33 +485,33 @@ export default function NewUser({ closeModal, userToEdit, onSuccess }: NewUserPr
                   options={roleOptions}
                   onChange={(value) => {
                     setValue("role", value as any);
-                    setValue("managerId", undefined);
+                    setValue("managerId", "");
                   }}
                   disabled={isSubmitting || isEditMode}
                 />
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="sticky bottom-0 bg-white border-t px-6 py-4 -mx-6">
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-[#243874] hover:bg-[#243874]/90"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  {isEditMode ? "Updating..." : "Creating..."}
-                </>
-              ) : isEditMode ? (
-                "Update User"
-              ) : (
-                "Create User"
-              )}
-            </Button>
-          </div>
-        </form>
+        <div className="sticky bottom-0 bg-white border-t px-6 py-4">
+          <Button
+            onClick={handleFormSubmit(handleSubmit)}
+            disabled={isSubmitting}
+            className="w-full bg-[#243874] hover:bg-[#243874]/90"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                {isEditMode ? "Updating..." : "Creating..."}
+              </>
+            ) : isEditMode ? (
+              "Update User"
+            ) : (
+              "Create User"
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );

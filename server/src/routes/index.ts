@@ -14,6 +14,7 @@ import storageRoute from "./storageRoute";
 import worklowRoute from "./workflowRoute";
 import contactRoute from "./contactRoute";
 import dashboardRoute from "./dashboardRoute";
+import newsAgentRoute from "./newsAgentRoutes";
 import { requireAuth } from "../middleware/authMiddleware";
 import { apiLimiter, authLimiter } from "../middleware/rateLimiter";
 
@@ -35,5 +36,6 @@ router.use('/epapers', apiLimiter, requireAuth, epaperRoute);
 router.use('/status', apiLimiter, requireAuth, worklowRoute);
 router.use('/contact', apiLimiter, requireAuth, contactRoute);
 router.use('/dashboard', apiLimiter, dashboardRoute);
+router.use('/news-agent', apiLimiter, requireAuth, newsAgentRoute);
 
 export default router;

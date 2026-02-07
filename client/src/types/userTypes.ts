@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { id } from "zod/v4/locales";
 
 export interface UserFilters {
   page?: number;
@@ -26,10 +25,10 @@ export interface UserStats {
 
 
 export const UserRole = {
-  ADMIN : "ADMIN",
-  SUB_ADMIN : "SUB_ADMIN",
-  EDITOR : "EDITOR",
-}as const;
+  ADMIN: "ADMIN",
+  SUB_ADMIN: "SUB_ADMIN",
+  EDITOR: "EDITOR",
+} as const;
 export const userRoleSchema = z.nativeEnum(UserRole);
 export type UserRole = z.infer<typeof userRoleSchema>;
 export const USER_ROLES = Object.values(UserRole);
@@ -51,10 +50,10 @@ export const DESIGNATIONS = Object.values(Designation);
 
 
 export const JobType = {
-  FULL_TIME : "FULL_TIME",
-  PART_TIME : "PART_TIME",
-  FREELANCE : "FREELANCE",
-  INTERN : "INTERN",
+  FULL_TIME: "FULL_TIME",
+  PART_TIME: "PART_TIME",
+  FREELANCE: "FREELANCE",
+  INTERN: "INTERN",
 } as const;
 export const jobTypeSchema = z.nativeEnum(JobType);
 export type JobType = z.infer<typeof jobTypeSchema>;
@@ -69,8 +68,8 @@ export const userFormSchema = z.object({
   phone: z.string(),
   password: z.string().min(8).optional(),
   role: userRoleSchema,
-  designation: designationSchema,
-  jobType: jobTypeSchema,
+  designation: designationSchema.optional(),
+  jobType: jobTypeSchema.optional(),
   location: z.string().optional(),
   bio: z.string(),
   managerId: z.string().optional(),
@@ -81,9 +80,33 @@ export type UserFormState = z.infer<typeof userFormSchema>;
 
 
 export const UserStatus = {
-  ACTIVE : "ACTIVE",
-  SUSPENDED : "SUSPENDED",
-  DEACTIVATED : "DEACTIVATED",
+  ACTIVE: "ACTIVE",
+  SUSPENDED: "SUSPENDED",
+  DEACTIVATED: "DEACTIVATED",
 } as const;
 export const userStatusSchema = z.nativeEnum(UserStatus);
 export type UserStatus = z.infer<typeof userStatusSchema>;
+
+
+type ApiUsersPayload = {
+  data: UserFormState[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPage: number;
+  };
+};
+
+type Pagination = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
+
+
+export type UsersResponse = {
+  users: UserFormState[];
+  pagination: Pagination;
+};

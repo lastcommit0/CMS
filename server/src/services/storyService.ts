@@ -31,7 +31,7 @@ export class StoryService {
     const story = await prisma.story.findUnique({
       where: { id },
       include: {
-        author: { select: { id: true, name: true, email: true }, include: { profile: true } },
+        author: { select: { id: true, name: true, email: true, profile: true } },
         sections: { include: { section: true } },
         assets: true,
         meta: true

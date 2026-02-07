@@ -22,25 +22,20 @@ const reports = [
 
 export default function DownloadReport() {
   return (
-    <div className=" px-6 py-4 bg-white min-h-screen">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-[#243874] font-semibold text-lg">
+    <div className="w-full min-h-screen bg-white">
+      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-4 md:px-6 py-4 bg-white border-b border-gray-200">
+        <h1 className="text-[18px] font-semibold text-[#243874]">
           Download Report
         </h1>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white p-4 rounded shadow-sm mb-4">
+      </header>
+      <div className="bg-white p-4 my-4">
         <div className="flex flex-wrap gap-4 items-center">
-          {/* Select Author */}
           <select className="border px-3 py-2 text-sm rounded w-56 bg-[#F5F6FA] outline-none">
             <option>Select Author</option>
             <option>Admin</option>
             <option>Editor</option>
           </select>
 
-          {/* Start Date */}
           <div className="relative">
             <input
               type="text"
@@ -53,7 +48,6 @@ export default function DownloadReport() {
             />
           </div>
 
-          {/* End Date */}
           <div className="relative">
             <input
               type="text"
@@ -66,42 +60,42 @@ export default function DownloadReport() {
             />
           </div>
 
-          {/* Search */}
           <button className="bg-[#243874] text-white px-5 py-2 text-sm rounded">
             Search
           </button>
 
-            <button className="bg-[#243874] text-white text-sm px-4 py-2 rounded">
+          <button className="bg-[#243874] text-white text-sm px-4 py-2 rounded">
             Download
-            </button>
+          </button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded shadow-sm overflow-hidden">
-        <table className="w-full border-collapse">
-          <thead className="bg-gray-50 text-gray-600 text-sm">
-            <tr>
-              <th className="px-4 py-3 text-left w-20">ID</th>
-              <th className="px-4 py-3 text-left">Title</th>
-              <th className="px-4 py-3 text-right w-60">Updated Date</th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y">
-            {reports.map((item) => (
-              <tr key={item.id} className="text-sm text-gray-700">
-                <td className="px-4 py-3">{item.id}</td>
-                <td className="px-4 py-3 truncate max-w-[700px]">
-                  {item.title}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {item.updatedAt}
-                </td>
+      <div className="p-4 md:p-6">
+        <div className="bg-white border rounded-md overflow-hidden">
+          <table className="min-w-[700px] w-full">
+            <thead className="bg-gray-50 text-gray-600 text-sm">
+              <tr>
+                <th className="px-4 py-3 text-left w-20">ID</th>
+                <th className="px-4 py-3 text-left">Title</th>
+                <th className="px-4 py-3 text-right w-60">Updated Date</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody className="divide-y">
+              {reports.map((item) => (
+                <tr key={item.id} className="text-sm text-gray-700">
+                  <td className="px-4 py-3">{item.id}</td>
+                  <td className="px-4 py-3 truncate max-w-[700px]">
+                    {item.title}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {item.updatedAt}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

@@ -6,16 +6,17 @@ import catchAsync from "./catchAsync";
 
 export const requireAuth = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
+  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+  const cookieToken = req.cookies?.accessToken as string | undefined;
+  const token = bearerToken || cookieToken;
 
-  if (!authHeader?.startsWith("Bearer ")) {
+  if (!token) {
     throw new CustomError({
       statusCode: 401,
       message: "Authentication required",
       code: "AUTH_REQUIRED",
     });
   }
-
-  const token = authHeader.split(" ")[1];
 
   const payload = jwt.verify(token, process.env.JWT_SECRET!) as {
     userId: string;

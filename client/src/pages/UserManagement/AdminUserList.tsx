@@ -21,13 +21,44 @@ export default function AdminUserList() {
   const users = data?.users || [];
   const pagination = data?.pagination;
 
-  // Reset to page 1 when search term changes
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch]);
 
   const openModal = (user?: any) => {
-    setEditingUser(user || null);
+    if (!user) {
+      setEditingUser(null);
+      setOpen(true);
+      return;
+    }
+
+    const hasFormShape = typeof user.firstName === "string";
+    if (hasFormShape) {
+      setEditingUser(user);
+      setOpen(true);
+      return;
+    }
+
+    const name = user.name ?? "";
+    const [firstName, ...rest] = String(name).trim().split(/\s+/);
+    const lastName = rest.join(" ");
+    const role = user.roles?.[0]?.role?.name ?? "EDITOR";
+
+    setEditingUser({
+      id: user.id,
+      firstName: firstName || "",
+      lastName: lastName || "",
+      email: user.email ?? "",
+      phone: user.phone ?? "",
+      password: "",
+      role,
+      designation: user.profile?.designation,
+      jobType: user.profile?.jobType,
+      location: user.profile?.location ?? "",
+      bio: user.profile?.bio ?? "",
+      managerId: user.manager?.id,
+      avatar: user.profile?.avatar,
+    });
     setOpen(true);
   };
 
@@ -39,6 +70,8 @@ export default function AdminUserList() {
   const handleSuccess = () => {
     refetch();
   };
+
+
 
   return (
     <div className="w-full min-h-screen bg-white">

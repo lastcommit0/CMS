@@ -5,6 +5,7 @@ import type {
 } from '@/types/userTypes';
 import { userApi } from '@/services/userService';
 import { toast } from 'sonner';
+import type { UsersResponse } from '@/types/userTypes';
 
 
 const USER_KEYS = {
@@ -19,10 +20,17 @@ const USER_KEYS = {
 
 
 export const useUsers = (filters: UserFilters = { page: 1, limit: 10 }) =>
-  useQuery({
+  useQuery<UsersResponse>({
     queryKey: USER_KEYS.list(filters),
-    queryFn: () =>
-      userApi.getUsers(filters).then(res => res.data.data!),
+    queryFn: async () => {
+      const res = await userApi.getUsers(filters);
+      const payload = res.data;
+
+      return {
+        users: payload.data ?? [],
+        pagination: payload.pagination!,
+      };
+    },
     staleTime: 5 * 60 * 1000,
   });
 

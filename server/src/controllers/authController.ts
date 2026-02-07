@@ -6,6 +6,21 @@ import { ErrorCode } from "../errors/errorCode";
 
 
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+const isProd = process.env.NODE_ENV === "production";
+
+const refreshCookieOptions = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: "lax" as const,
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+
+const accessCookieOptions = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: "lax" as const,
+  maxAge: 15 * 60 * 1000,
+};
 
 
 export const register = async (req: Request, res: Response) => {
@@ -52,16 +67,10 @@ export const googleCallback = async (req: Request, res: Response) => {
     const { accessToken, refreshToken } =
       await AuthService.handleOAuthLogin(payload, req);
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("refreshToken", refreshToken, refreshCookieOptions);
+    res.cookie("accessToken", accessToken, accessCookieOptions);
 
-    return res.redirect(
-      `${CLIENT_URL}/auth/callback?token=${encodeURIComponent(accessToken)}`
-    );
+    return res.redirect(`${CLIENT_URL}/auth/callback`);
 
   } catch (error) {
     console.error("Google OAuth Error:", error);
@@ -76,19 +85,13 @@ export const login = async (req: Request, res: Response) => {
 
   const { passwordHash, ...userData } = result.user;
 
-  res.cookie("refreshToken", result.refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
+  res.cookie("accessToken", result.accessToken, accessCookieOptions);
 
   res.status(200).json({
     success: true,
     data: {
       user: userData,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken
     }
   })
 }
@@ -105,19 +108,12 @@ export const refresh = async (req: Request, res: Response) => {
   }
   const token = await AuthService.refreshUser(refreshToken, req);
 
-  res.cookie("refreshToken", token.refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  res.cookie("refreshToken", token.refreshToken, refreshCookieOptions);
+  res.cookie("accessToken", token.accessToken, accessCookieOptions);
 
   res.status(200).json({
     success: true,
-    data: {
-      accessToken: token.accessToken,
-      refreshToken: token.refreshToken
-    }
+    data: {}
   })
 
 }
@@ -129,11 +125,8 @@ export const logout = async (req: Request, res: Response) => {
     await AuthService.logoutUser(refreshToken, req);
   }
 
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-  });
+  res.clearCookie("refreshToken", refreshCookieOptions);
+  res.clearCookie("accessToken", accessCookieOptions);
 
   res.status(200).json({
     success: true,
@@ -148,11 +141,8 @@ export const logoutAll = async (req: Request, res: Response) => {
   }
   await AuthService.logoutAllSessions(req);
 
-  res.clearCookie("refreshToken", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-  });
+  res.clearCookie("refreshToken", refreshCookieOptions);
+  res.clearCookie("accessToken", accessCookieOptions);
 
   res.status(200).json({
     success: true,

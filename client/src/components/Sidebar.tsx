@@ -46,6 +46,7 @@ const menuItems = [
       { label: "Category Management", path: "category-management" },
       { label: "Meta Management", path: "meta-management" },
       { label: "Download Report", path: "download-report" },
+      { label: "News Story Agent", path: "news-story-agent" },
     ],
   },
   {

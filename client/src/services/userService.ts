@@ -1,4 +1,3 @@
-// client/src/services/userService.ts
 import apiClient, { type ApiResponse } from "@/lib/api/axiosClient";
 import type {
   UserFilters,
@@ -15,10 +14,10 @@ export const userApi = {
     apiClient.get<ApiResponse<User>>(`${BASE_URL}/me`),
 
   getUsers: (filters: UserFilters) =>
-    apiClient.get<ApiResponse<{ users: UserFormState[]; pagination: any }>>(
-      `${BASE_URL}/users`,
+    apiClient.get<ApiResponse<UserFormState[]>>(`${BASE_URL}/users`,
       { params: filters }
     ),
+
 
   getUserById: (id: string) =>
     apiClient.get<ApiResponse<UserFormState>>(`${BASE_URL}/user/${id}`),

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate, Outlet, useNavigate } from "react-router-dom";
-import { accessTokenStore } from "@/lib/api/tokenManager";
-import { refreshAccessToken } from "@/lib/api/authRefresh";
+import { userApi } from "@/services/userService";
 
 
 export default function ProtectedRoute(){
@@ -10,15 +9,8 @@ export default function ProtectedRoute(){
     const [allowed, setAllowed] = useState(false);
 
     useEffect(() => {
-        const token = accessTokenStore.get();
-        if (token) {
-            setAllowed(true);
-            setChecking(false);
-            return;
-        }
-
         let cancelled = false;
-        refreshAccessToken()
+        userApi.getCurrentUser()
             .then(() => {
                 if (!cancelled) {
                     setAllowed(true);
@@ -42,7 +34,6 @@ export default function ProtectedRoute(){
 
     useEffect(() => {
         const handler = () => {
-            accessTokenStore.clear();
             navigate("/auth", { replace: true });
         };
         window.addEventListener("auth-expired", handler);
@@ -54,7 +45,6 @@ export default function ProtectedRoute(){
     }
 
     if (!allowed) {
-        console.log("No access token found, redirecting to login.");
         return <Navigate to="/auth" replace />;
     }
 
