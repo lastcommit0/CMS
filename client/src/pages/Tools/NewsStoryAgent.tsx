@@ -89,7 +89,16 @@ export default function NewsStoryAgent() {
     const currentStage = getCurrentStage();
 
     return (
-        <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-white to-blue-50 relative">
+        <div className="min-h-screen w-full relative">
+
+            <header className='my-2 mx-2'>
+                <h1 className="text-[18px] font-bold text-[#243874] flex items-center gap-2">
+                    News Story Agent
+                    <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 px-3 py-1 text-xs font-medium text-yellow-300 backdrop-blur-sm animate-pulse" style={{ animationDelay: '1s' }}>
+                        <Zap className="h-3 w-3" /> AI Powered
+                    </span>
+                </h1>
+            </header>
             {/* Transition Overlay */}
             {isTransitioning && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1a1f35]/80 backdrop-blur-md animate-in fade-in duration-500">
@@ -103,58 +112,6 @@ export default function NewsStoryAgent() {
                     </div>
                 </div>
             )}
-            {/* Header with glowing effect */}
-            <div className="relative overflow-hidden bg-gradient-to-r from-[#1a1f35] via-[#243874] to-[#2d4a9e] px-8 py-8">
-                {/* Animated background orbs */}
-                <div className="absolute inset-0 overflow-hidden">
-                    <div className="absolute -top-20 -left-20 h-64 w-64 rounded-full bg-blue-400/20 blur-3xl animate-pulse" />
-                    <div className="absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-purple-400/20 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-indigo-400/10 blur-3xl" />
-                </div>
-
-                <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="relative">
-                            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 blur-lg opacity-60" />
-                            <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg">
-                                <Bot className="h-7 w-7 text-white" />
-                            </div>
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                                News Story Agent
-                                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-yellow-300 backdrop-blur-sm">
-                                    <Zap className="h-3 w-3" /> AI Powered
-                                </span>
-                            </h1>
-                            <p className="text-sm text-blue-200 mt-1">
-                                Generate professional news stories from trending topics in seconds
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Health indicator */}
-                    <div className="flex items-center gap-2">
-                        {isCheckingHealth ? (
-                            <span className="flex items-center gap-2 text-blue-200 text-sm">
-                                <Loader2 className="h-4 w-4 animate-spin" /> Checking service...
-                            </span>
-                        ) : isHealthy ? (
-                            <span className="flex items-center gap-2 text-emerald-300 text-sm">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-                                </span>
-                                Agent Online
-                            </span>
-                        ) : (
-                            <span className="flex items-center gap-2 text-red-300 text-sm">
-                                <AlertCircle className="h-4 w-4" /> Agent Offline
-                            </span>
-                        )}
-                    </div>
-                </div>
-            </div>
 
             <div className="mx-auto max-w-7xl px-6 py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

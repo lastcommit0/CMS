@@ -1,14 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
-    Story,
     StoryFilters,
     StoryFormState,
-    StoryStats,
     CreateStoryRequest,
 } from '@/types/storyTypes';
 import { storyApi } from '@/services/storyService';
 import { storageApi } from '@/services/storageService';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/utils/getErrorMessage';
 
 const STORY_KEYS = {
     all: ['stories'] as const,
@@ -24,7 +23,10 @@ export const useStories = (filters: StoryFilters) => {
     return useQuery({
         queryKey: STORY_KEYS.list(filters),
         queryFn: () =>
-            storyApi.getStories(filters).then(res => res.data.data!),
+            storyApi.getStories(filters).then(res => ({
+                data: res.data.stories,
+                total: res.data.total,
+            })),
         staleTime: 5 * 60 * 1000,
     });
 };
@@ -73,7 +75,7 @@ export const useCreateStory = () => {
             return data;
         },
         onError: (error: any) => {
-            toast.error(error?.response?.data?.message || 'Failed to create story');
+            toast.error(getErrorMessage(error, 'Failed to create story'));
         },
     });
 };

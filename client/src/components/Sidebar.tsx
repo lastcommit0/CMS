@@ -89,7 +89,7 @@ export default function Sidebar() {
   return (
     <div className="fixed top-0 flex min-h-screen">
       <aside className="w-[142px] h-screen bg-[#1c1c1f] text-white flex flex-col items-center py-6">
-        <div className="flex flex-col items-center gap-6 w-full">
+        <div className="flex flex-col items-center gap-6 border-b h-full mb-4 border-gray-100 w-full">
           <div className="flex items-center gap-2">
             <img src={logo} className="w-11" />
             <h3 className="font-logo text-xs uppercase font-semibold leading-none">
@@ -115,8 +115,7 @@ export default function Sidebar() {
             ))}
           </div>
         </div>
-
-        <button className="mt-auto flex flex-col items-center gap-2" onClick={handleLogout}>
+        <button className="mt-auto flex w-full flex-col items-center gap-2" onClick={handleLogout}>
           {avatarUrl ? (
             <img
               src={avatarUrl}

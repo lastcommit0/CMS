@@ -4,6 +4,8 @@ import { toast } from "sonner"
 import addimg from "../../../assets/icons/addimg.svg";
 import { useCreateEpaper } from "@/hooks/useEpapers";
 import { epaperApi } from "@/services/epaperService";
+import image from "../../../assets/icons/image.svg";
+import pdf from "../../../assets/icons/pdf.svg";
 
 export default function NewPaper({ onClose }: { onClose: () => void }) {
   const [title, setTitle] = useState("");
@@ -100,8 +102,8 @@ export default function NewPaper({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="space-y-6 p-6 bg-white min-h-screen shadow max-w-7xl mx-auto rounded-lg">
-      <div className="flex items-center justify-between border-b pb-3">
+    <div className="space-y-6 bg-white min-h-screen shadow max-w-7xl mx-auto rounded-lg">
+      <div className="flex items-center justify-between border-b px-4 py-4">
         <h2 className="text-[18px] text-[#243874] font-semibold">
           Add New {type === 'EPAPER' ? 'E-Paper' : 'Magazine'} PDF
         </h2>
@@ -113,7 +115,15 @@ export default function NewPaper({ onClose }: { onClose: () => void }) {
             Cancel
           </button>
           <button
-            className="px-4 py-1.5 text-sm rounded-md bg-[#243874] text-white flex items-center gap-2 disabled:opacity-50"
+            className="px-4 py-1.5 text-sm rounded-sm bg-[#EAEAEA] text-[#404040] flex items-center gap-2 disabled:opacity-50"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting && <Loader2 size={16} className="animate-spin" />}
+            Download PDF
+          </button>
+          <button
+            className="px-4 py-1.5 text-sm rounded-sm bg-[#243874] text-white flex items-center gap-2 disabled:opacity-50"
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
@@ -123,135 +133,117 @@ export default function NewPaper({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="text-sm font-semibold text-gray-700 block mb-1">Title</label>
-          <input
-            className="w-full px-3 py-2 border rounded text-sm outline-none focus:ring-1 focus:ring-[#243874]"
-            placeholder="Enter title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="text-sm font-semibold text-gray-700 block mb-1">Date</label>
-          <input
-            type="date"
-            className="w-full px-3 py-2 border rounded text-sm outline-none focus:ring-1 focus:ring-[#243874]"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className="flex items-center gap-6 text-sm">
-        <span className="font-medium text-gray-700">Type</span>
-
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="radio"
-            name="type"
-            checked={type === 'EPAPER'}
-            onChange={() => setType('EPAPER')}
-          />
-          E-Paper
-        </label>
-
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="radio"
-            name="type"
-            checked={type === 'MAGAZINE'}
-            onChange={() => setType('MAGAZINE')}
-          />
-          Magazine
-        </label>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div>
-          <p className="text-sm font-semibold text-gray-700 mb-2">Cover Image</p>
-          {coverImage ? (
-            <div className="flex items-center justify-center relative border-2 border-dashed rounded-lg p-4 h-[400px] w-full bg-gray-50">
-              <img
-                src={coverImagePreview || ''}
-                alt="Preview"
-                className="h-full object-contain rounded shadow-sm"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setCoverImage(null);
-                  setCoverImagePreview(null);
-                }}
-                className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full hover:bg-black/70 transition-colors"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          ) : (
-            <label className="flex h-full flex-col items-center justify-center rounded-lg border-2 border-dashed text-center cursor-pointer hover:bg-gray-50 min-h-[400px] transition-colors group">
+      <div className="flex flex-col gap-4 px-4">
+        <div className="flex flex-col gap-2 text-sm">
+          <span className="font-medium text-[14px] text-[#606060]">PDF Type</span>
+          <div className="flex gap-6">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
+                type="radio"
+                name="type"
+                checked={type === 'EPAPER'}
+                onChange={() => setType('EPAPER')}
               />
-              <ImageIcon className="mb-4 w-14 h-14 text-gray-300 group-hover:text-gray-400 transition-colors" />
-              <p className="text-sm font-semibold">
-                Drag and drop an image, or{" "}
-                <span className="text-blue-600">Browse</span>
-              </p>
-              <p className="mt-1 text-xs text-gray-500">
-                Max 10MB
-              </p>
+              E-Paper
             </label>
-          )}
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="type"
+                checked={type === 'MAGAZINE'}
+                onChange={() => setType('MAGAZINE')}
+              />
+              Magazine
+            </label>
+          </div>
         </div>
 
-        <div>
-          <p className="text-sm font-semibold text-gray-700 mb-2">PDF File</p>
-          {pdfFile ? (
-            <div className="flex flex-col items-center justify-center gap-4 p-4 border-2 border-dashed rounded-lg bg-gray-50 h-[400px]">
-              <div className="bg-red-50 p-6 rounded-full">
-                <FileText size={48} className="text-red-500" />
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-6">
+          <div>
+            <p className="text-sm font-semibold text-gray-700 mb-2">Cover Image</p>
+            {coverImage ? (
+              <div className="flex items-center justify-center relative border-2 border-dashed rounded-lg p-4 h-[400px] w-full bg-gray-50">
+                <img
+                  src={coverImagePreview || ''}
+                  alt="Preview"
+                  className="h-full object-contain rounded shadow-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCoverImage(null);
+                    setCoverImagePreview(null);
+                  }}
+                  className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full hover:bg-black/70 transition-colors"
+                >
+                  <X size={16} />
+                </button>
               </div>
-              <div className="text-center">
-                <p className="font-semibold text-gray-800">{pdfFile.name}</p>
-                <p className="text-sm text-gray-500">
-                  {(pdfFile.size / 1024 / 1024).toFixed(2)} MB
+            ) : (
+              <label className="flex h-full flex-col items-center justify-center rounded-lg border-2 border-dashed text-center cursor-pointer hover:bg-gray-50 min-h-[400px] transition-colors group">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+                <img src={image} className="size-[80px] mb-4" />
+                <p className="text-sm text-[16px] font-semibold">
+                  Drag and drop Cover image, or{" "}
+                  <span className="text-[#1967D2]">Browse</span>
                 </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPdfFile(null)}
-                className="px-4 py-2 text-sm font-semibold text-red-600 border border-red-200 rounded-md hover:bg-red-50 transition-colors"
-              >
-                Remove PDF
-              </button>
-            </div>
-          ) : (
-            <label className="flex h-[400px] flex-col items-center justify-center rounded-lg border-2 border-dashed text-center cursor-pointer hover:bg-gray-50 transition-colors group">
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={handlePdfChange}
-                className="hidden"
-              />
-              <FileText className="mb-4 w-14 h-14 text-gray-300 group-hover:text-gray-400 transition-colors" />
-              <p className="text-sm font-semibold">
-                Drag and drop PDF file here, or{" "}
-                <span className="text-blue-600">Browse</span>
-              </p>
-              <p className="mt-1 text-xs text-gray-500">
-                Max 50MB
-              </p>
-            </label>
-          )}
-        </div>
-      </div>
+                <p className="mt-1 text-[14px] text-[#606060]">
+                  Minimum 800px width recommended. Max 10MB each
+                </p>
+              </label>
+            )}
+          </div>
 
-      <PaperImagesUploader />
+          <div>
+            <p className="text-sm font-semibold text-gray-700 mb-2">PDF File</p>
+            {pdfFile ? (
+              <div className="flex flex-col items-center justify-center gap-4 p-4 border-2 border-dashed rounded-lg bg-gray-50 h-[400px]">
+                <div className="bg-red-50 p-6 rounded-full">
+                  <FileText size={48} className="text-red-500" />
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold text-gray-800">{pdfFile.name}</p>
+                  <p className="text-sm text-gray-500">
+                    {(pdfFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPdfFile(null)}
+                  className="px-4 py-2 text-sm font-semibold text-red-600 border border-red-200 rounded-md hover:bg-red-50 transition-colors"
+                >
+                  Remove PDF
+                </button>
+              </div>
+            ) : (
+              <label className="flex h-[400px] flex-col items-center justify-center rounded-lg border-2 border-dashed text-center cursor-pointer hover:bg-gray-50 transition-colors group">
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={handlePdfChange}
+                  className="hidden"
+                />
+                <img src={pdf} className="size-[80px] mb-4" />
+                <p className="text-sm text-[16px] font-semibold">
+                  Drag and drop PDF file here, or{" "}
+                  <span className="text-[#1967D2]">Browse</span>
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Max PDF file size is 10MB
+                </p>
+              </label>
+            )}
+          </div>
+        </div>
+
+        <PaperImagesUploader />
+      </div>
     </div>
   )
 }
@@ -288,18 +280,17 @@ export function PaperImagesUploader() {
 
   return (
     <div
-      className="space-y-4 pt-4 border-t"
+      className="space-y-4 pt-4"
       onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
       onDragLeave={() => setIsDragging(false)}
       onDrop={onDrop}
     >
-      <p className="text-sm font-semibold text-gray-700">Internal Pages (Optional)</p>
       {items.length === 0 ? (
         <div
           onClick={() => inputRef.current?.click()}
           className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all cursor-pointer h-[150px] ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:bg-gray-50'}`}
         >
-          <ImageIcon className="mb-2 w-8 h-8 text-gray-300" />
+          <img src={image} className="size-[80px] mb-4" />
           <p className="text-sm font-semibold text-gray-800">
             Drag and drop images for pages, or <span className="text-blue-600">Browse</span>
           </p>

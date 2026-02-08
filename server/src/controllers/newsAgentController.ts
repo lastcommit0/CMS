@@ -59,9 +59,7 @@ export class NewsAgentController {
         }
     }
 
-    /**
-     * Generate a news story with streaming progress
-     */
+    
     static async generateStoryStream(req: Request, res: Response, next: NextFunction) {
         try {
             const { topic, category, mandal, district, as_of } = req.body as GenerateStoryRequest;
@@ -121,9 +119,7 @@ export class NewsAgentController {
         }
     }
 
-    /**
-     * Get trending topics for a category
-     */
+    
     static async getTrendingTopics(req: Request, res: Response, next: NextFunction) {
         try {
             const { category, count } = req.body as TrendingTopicsRequest;
@@ -156,9 +152,6 @@ export class NewsAgentController {
         }
     }
 
-    /**
-     * Health check for the news agent service
-     */
     static async healthCheck(req: Request, res: Response, next: NextFunction) {
         try {
             const controller = new AbortController();

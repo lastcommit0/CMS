@@ -73,7 +73,7 @@ export const createStorySchema = z
       if (typeof arg === "string" || arg instanceof Date) return new Date(arg);
     }, z.date().optional()),
     sectionIds: z.array(z.string()).optional(),
-
+    topicTags: z.array(z.string()).optional(),
     mandal: z.string().optional(),
     district: z.string().optional(),
     place: z.string().optional(),

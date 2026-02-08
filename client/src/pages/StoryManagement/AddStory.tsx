@@ -1,8 +1,8 @@
 import { Clipboard, Tag } from "lucide-react"
 import image from "../../assets/icons/image.svg"
 import pdf from "../../assets/icons/pdf.svg"
-import type { CreateStoryRequest, StoryFormState } from "@/types/storyTypes"
-import React, { useEffect, useRef, useState } from "react"
+import type { CreateStoryPayload, CreateStoryRequest, StoryFormState } from "@/types/storyTypes"
+import { useEffect, useRef, useState, type ChangeEvent } from "react"
 import { useNavigate } from "react-router-dom"
 import { useCreateStory } from "@/hooks/useStories"
 import { toast } from "sonner"
@@ -10,11 +10,11 @@ import { Loader2, X } from "lucide-react"
 import RichTextEditor from "@/components/RichTextEditor/RichTextEditor"
 import { storageApi } from "@/services/storageService"
 import type { StoryAssetInput } from "@/types/storyTypes"
-import { useUploadImage } from "@/hooks/useStorage"
 import { storyApi } from "@/services/storyService"
+import { getErrorMessage } from "../../utils/getErrorMessage"
 
 const MAX_META_DESCRIPTION_LENGTH = 160;
-const MIN_META_DESCRIPTION_LENGTH = 150;
+const MIN_META_DESCRIPTION_LENGTH = 10;
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const ALLOWED_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
@@ -22,6 +22,7 @@ const ALLOWED_PDF_MIME_TYPES = new Set(['application/pdf']);
 const ALLOWED_PDF_EXTENSIONS = new Set(['pdf']);
 const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const STORY_URL_REGEX = /^(?!https?:\/\/)[a-z0-9]+([.-][a-z0-9]+)*(\/[a-z0-9\-._~%!$&'()*+,;=:@/]*)?$/i;
+
 type SeoField = keyof StoryFormState['seo'];
 type StoryDuplicateCandidate = {
   id: string;
@@ -29,12 +30,26 @@ type StoryDuplicateCandidate = {
   slug?: string;
   storyUrl?: string;
 };
+type DraftUploadedAsset = {
+  id: string;
+  fileUrl: string;
+  publicId: string;
+  mimeType: string;
+  size: number;
+  name?: string;
+};
 
 const stripHtmlTags = (value: string): string =>
   value
     .replace(/<[^>]*>/g, '')
     .replace(/[^\x20-\x7E]/g, '')
     .trim();
+
+const sanitizeSlug = (value: string): string =>
+  stripHtmlTags(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
 
 const containsHtmlTags = (value: string): boolean => /<[^>]*>/.test(value);
 
@@ -73,14 +88,16 @@ const extractStoryCandidates = (payload: unknown): StoryDuplicateCandidate[] => 
     return [];
   }
 
-  const rawPayload = payload as { stories?: unknown; data?: { data?: unknown } | unknown };
+  const rawPayload = payload as { stories?: unknown; data?: { stories?: unknown; data?: unknown } | unknown };
   const stories = Array.isArray(rawPayload.stories)
     ? rawPayload.stories
-    : rawPayload.data && typeof rawPayload.data === 'object' && Array.isArray((rawPayload.data as { data?: unknown }).data)
-      ? (rawPayload.data as { data: unknown[] }).data
-      : Array.isArray(rawPayload.data)
-        ? rawPayload.data
-        : [];
+    : rawPayload.data && typeof rawPayload.data === 'object' && Array.isArray((rawPayload.data as { stories?: unknown }).stories)
+      ? (rawPayload.data as { stories: unknown[] }).stories
+      : rawPayload.data && typeof rawPayload.data === 'object' && Array.isArray((rawPayload.data as { data?: unknown }).data)
+        ? (rawPayload.data as { data: unknown[] }).data
+        : Array.isArray(rawPayload.data)
+          ? rawPayload.data
+          : [];
 
   return stories.filter((item): item is StoryDuplicateCandidate => {
     if (!item || typeof item !== 'object') return false;
@@ -125,10 +142,12 @@ export default function AddStory() {
   const [tagInput, setTagInput] = useState('');
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const [coverImageAsset, setCoverImageAsset] = useState<DraftUploadedAsset | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfAsset, setPdfAsset] = useState<DraftUploadedAsset | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const uploadImageMut = useUploadImage();
-
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
 
   const DRAFT_STORAGE_KEY = 'cms:add-story-draft:v1';
 
@@ -145,10 +164,18 @@ export default function AddStory() {
         if (parsed && typeof parsed.tagInput === 'string') {
           setTagInput(parsed.tagInput);
         }
+        if (parsed && parsed.coverImageAsset && typeof parsed.coverImageAsset === 'object') {
+          setCoverImageAsset(parsed.coverImageAsset);
+          if (typeof parsed.coverImageAsset.fileUrl === 'string') {
+            setCoverImagePreview(parsed.coverImageAsset.fileUrl);
+          }
+        }
+        if (parsed && parsed.pdfAsset && typeof parsed.pdfAsset === 'object') {
+          setPdfAsset(parsed.pdfAsset);
+        }
         draftHydratedRef.current = true;
       }
 
-      // Check for News Agent Data Handoff
       const agentDataStr = sessionStorage.getItem('newsAgent:generatedStory');
       if (agentDataStr) {
         const agentData = JSON.parse(agentDataStr);
@@ -168,23 +195,24 @@ export default function AddStory() {
           }
         }));
 
-        // Handle Automatic Image Placement
-        if (agentData.imageUrl && !coverImagePreview) {
+        if (agentData.imageUrl && !coverImagePreview && !coverImageAsset) {
           fetch(agentData.imageUrl)
             .then(res => res.blob())
-            .then(blob => {
+            .then(async (blob) => {
               const file = new File([blob], 'cover-image.jpg', { type: 'image/jpeg' });
+              const uploadRes = await storageApi.uploadImage(file);
+              const uploaded = {
+                ...uploadRes.data,
+                name: file.name,
+              } satisfies DraftUploadedAsset;
               setCoverImage(file);
-              setCoverImagePreview(agentData.imageUrl);
-              // Proactively upload to storage
-              uploadImageMut.mutate(file);
+              setCoverImagePreview(uploadRes.data.fileUrl || agentData.imageUrl);
+              setCoverImageAsset(uploaded);
             })
             .catch(err => console.error('Failed to fetch agent image:', err));
         }
 
         toast.success('Story imported from News Agent');
-        // We keep it in session for now in case of refresh, 
-        // but clear it on success or if user wants to discard
       }
     } catch (error) {
       console.warn('Failed to restore draft or agent data', error);
@@ -204,6 +232,8 @@ export default function AddStory() {
         const payload = {
           form,
           tagInput,
+          coverImageAsset,
+          pdfAsset,
         };
         localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(payload));
       } catch (error) {
@@ -216,7 +246,7 @@ export default function AddStory() {
         window.clearTimeout(draftSaveTimerRef.current);
       }
     };
-  }, [form, tagInput]);
+  }, [form, tagInput, coverImageAsset, pdfAsset]);
 
   const clearDraftStorage = () => {
     try {
@@ -229,14 +259,10 @@ export default function AddStory() {
 
   useEffect(() => {
     if (form.articleTitle) {
-      const slug = form.articleTitle
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
+      const slug = sanitizeSlug(form.articleTitle);
       setForm(prev => ({ ...prev, slugIntro: slug }));
     }
   }, [form.articleTitle]);
-
 
   const handleInputChange = <K extends keyof StoryFormState>(field: K, value: StoryFormState[K]) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -268,42 +294,72 @@ export default function AddStory() {
     }));
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        toast.error('Image size should be less than 10MB');
-        return;
-      }
-      const fileExtension = getFileExtension(file.name);
-      if (!ALLOWED_IMAGE_MIME_TYPES.has(file.type) || !ALLOWED_IMAGE_EXTENSIONS.has(fileExtension)) {
-        toast.error('Only image files are allowed');
-        return;
-      }
-      uploadImageMut.mutate(file);
-      setCoverImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCoverImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      toast.error('Image size should be less than 10MB');
+      return;
     }
+    const fileExtension = getFileExtension(file.name);
+    if (!ALLOWED_IMAGE_MIME_TYPES.has(file.type) || !ALLOWED_IMAGE_EXTENSIONS.has(fileExtension)) {
+      toast.error('Only image files are allowed');
+      return;
+    }
+
+    setCoverImage(file);
+    setIsUploadingImage(true);
+
+    storageApi.uploadImage(file)
+      .then((res) => {
+        setCoverImagePreview(res.data.fileUrl);
+        setCoverImageAsset({
+          ...res.data,
+          name: file.name,
+        });
+        toast.success('Image uploaded');
+      })
+      .catch((error) => {
+        setCoverImage(null);
+        setCoverImagePreview(null);
+        setCoverImageAsset(null);
+        toast.error(getErrorMessage(error, 'Failed to upload image'));
+      })
+      .finally(() => setIsUploadingImage(false));
   }
 
-  const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePdfChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        toast.error('PDF file size should be less than 10MB');
-        return;
-      }
-      const fileExtension = getFileExtension(file.name);
-      if (!ALLOWED_PDF_MIME_TYPES.has(file.type) || !ALLOWED_PDF_EXTENSIONS.has(fileExtension)) {
-        toast.error('Only PDF files are allowed');
-        return;
-      }
-      setPdfFile(file);
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      toast.error('PDF file size should be less than 10MB');
+      return;
     }
+    const fileExtension = getFileExtension(file.name);
+    if (!ALLOWED_PDF_MIME_TYPES.has(file.type) || !ALLOWED_PDF_EXTENSIONS.has(fileExtension)) {
+      toast.error('Only PDF files are allowed');
+      return;
+    }
+
+    setPdfFile(file);
+    setIsUploadingPdf(true);
+
+    storageApi.uploadPdf(file)
+      .then((res) => {
+        setPdfAsset({
+          ...res.data,
+          name: file.name,
+        });
+        toast.success('PDF uploaded');
+      })
+      .catch((error) => {
+        setPdfFile(null);
+        setPdfAsset(null);
+        toast.error(getErrorMessage(error, 'Failed to upload PDF'));
+      })
+      .finally(() => setIsUploadingPdf(false));
   }
 
   const handleCopyUrl = () => {
@@ -318,6 +374,7 @@ export default function AddStory() {
       const title = form.articleTitle.trim().toLowerCase();
       const slug = form.slugIntro.trim().toLowerCase();
       const searchTerms = Array.from(new Set([title, slug, storyUrl].filter(Boolean)));
+      if (!searchTerms.length) return true;
       const candidates: StoryDuplicateCandidate[] = [];
 
       await Promise.all(
@@ -332,7 +389,7 @@ export default function AddStory() {
         new Map(candidates.map((item) => [item.id, item])).values()
       );
       const duplicateTitle = uniqueCandidates.find((item) =>
-        typeof item?.title === 'string' && item.title.trim().toLowerCase() === title
+        typeof (item?.title) === 'string' && item.title.trim().toLowerCase() === title
       );
       const duplicateSlug = uniqueCandidates.find((item) =>
         typeof item?.slug === 'string' && item.slug.trim().toLowerCase() === slug
@@ -350,14 +407,36 @@ export default function AddStory() {
         return false;
       }
       return true;
-    } catch (error) {
-      console.error('Failed to validate duplicate story data', error);
-      toast.error('Unable to verify duplicate title/slug right now');
-      return false;
+    } catch (error: any) {
+      console.error('Failed to validate duplicate story data:', error);
+      if (error?.response?.status === 401) {
+        toast.error('Session expired. Please refresh the page or log in again.');
+      } else {
+        toast.warning('Could not verify duplicates right now. Proceeding with save.');
+      }
+      return true;
     }
   };
 
   const validateForm = async (): Promise<boolean> => {
+    console.log('=== VALIDATION START ===');
+    console.log('Form state:', {
+      articleTitle: form.articleTitle,
+      shortTitle: form.shortTitle,
+      slugIntro: form.slugIntro,
+      storyUrl: form.storyUrl,
+      mandal: form.mandal,
+      topicTags: form.topicTags,
+      metaKeywords: form.seo.metaKeywords,
+      metaDescription: form.seo.metaDescription,
+      descriptionBlocksCount: form.description.blocks.length,
+      hasCoverImage: !!coverImage || !!coverImageAsset,
+      hasPdf: !!pdfFile || !!pdfAsset,
+    });
+    if (isUploadingImage || isUploadingPdf) {
+      toast.error('Please wait for image/PDF upload to finish');
+      return false;
+    }
     const normalizedStoryUrl = form.storyUrl.trim();
     const normalizedSlug = form.slugIntro.trim().toLowerCase();
     const normalizedMetaDescription = form.seo.metaDescription.trim();
@@ -367,38 +446,47 @@ export default function AddStory() {
       .filter(Boolean);
 
     if (!form.articleTitle.trim()) {
+      console.log('Validation failed: articleTitle is empty');
       toast.error('Article title is required');
       return false;
     }
     if (!form.shortTitle.trim()) {
+      console.log('Validation failed: shortTitle is empty');
       toast.error('Short title is required');
       return false;
     }
     if (!form.slugIntro.trim()) {
+      console.log('Validation failed: slugIntro is empty');
       toast.error('Slug intro is required');
       return false;
     }
     if (!SLUG_REGEX.test(normalizedSlug)) {
+      console.log('Validation failed: SLUG_REGEX failed', normalizedSlug);
       toast.error('Slug must contain only lowercase letters, numbers, and hyphens');
       return false;
     }
     if (normalizedStoryUrl && !STORY_URL_REGEX.test(normalizedStoryUrl)) {
+      console.log('Validation failed: STORY_URL_REGEX failed', normalizedStoryUrl);
       toast.error('Story URL is invalid. Use domain/path without protocol');
       return false;
     }
     if (!form.mandal.trim()) {
+      console.log('Validation failed: mandal is empty');
       toast.error('Mandal is required');
       return false;
     }
     if (form.topicTags.length === 0) {
+      console.log('Validation failed: topicTags is empty');
       toast.error('At least one topic tag is required');
       return false;
     }
     if (!form.seo.metaKeywords.trim()) {
+      console.log('Validation failed: metaKeywords is empty');
       toast.error('Meta keywords are required');
       return false;
     }
     if (!form.seo.metaDescription.trim()) {
+      console.log('Validation failed: metaDescription is empty');
       toast.error('Meta description is required');
       return false;
     }
@@ -406,44 +494,55 @@ export default function AddStory() {
       normalizedMetaDescription.length < MIN_META_DESCRIPTION_LENGTH ||
       normalizedMetaDescription.length > MAX_META_DESCRIPTION_LENGTH
     ) {
+      console.log('Validation failed: metaDescription length', normalizedMetaDescription.length, 'Required:', MIN_META_DESCRIPTION_LENGTH, '-', MAX_META_DESCRIPTION_LENGTH);
       toast.error('Meta description must be between 150 and 160 characters');
       return false;
     }
     if (keywords.length === 0) {
+      console.log('Validation failed: keywords array is empty');
       toast.error('Meta keywords should be comma-separated values');
       return false;
     }
     if (keywords.some((keyword) => keyword.length < 2 || keyword.length > 50 || !/^[a-z0-9\s-]+$/i.test(keyword))) {
+      console.log('Validation failed: invalid keywords found');
       toast.error('Each meta keyword must be 2-50 chars and use letters, numbers, spaces or hyphens');
       return false;
     }
     if (containsHtmlTags(form.articleTitle) || containsHtmlTags(form.shortTitle) || containsHtmlTags(form.slugIntro)) {
+      console.log('Validation failed: HTML tags in titles');
       toast.error('HTML tags are not allowed in story title fields');
       return false;
     }
     if (hasUnsafeEditorContent(form.description) || hasUnsafeEditorContent(form.highlights)) {
+      console.log('Validation failed: HTML tags in content');
       toast.error('HTML tags are not allowed in description/highlights text');
       return false;
     }
     if (!form.description.blocks.length) {
+      console.log('Validation failed: description is empty');
       toast.error('Description is required');
       return false;
     }
-    if (!coverImage) {
+    if (!coverImage && !coverImageAsset) {
+      console.log('Validation failed: cover image is missing');
       toast.error('Cover image is required');
       return false;
     }
-    if (!pdfFile) {
+    if (!pdfFile && !pdfAsset) {
+      console.log('Validation failed: PDF is missing');
       toast.error('PDF is required');
       return false;
     }
-    return checkForDuplicateStoryData();
+    console.log('Check duplicates starting...');
+    const duplicateResult = await checkForDuplicateStoryData();
+    console.log('Duplicate check result:', duplicateResult);
+    return duplicateResult;
   };
 
-  const prepareFormData = (status: 'DRAFT' | 'SUBMITTED') => {
+  const prepareFormData = (status: 'DRAFT' | 'SUBMITTED'): Omit<CreateStoryPayload, 'assets'> => {
+    const storyType: CreateStoryPayload['storyType'] = form.type === 'STORY' ? 'NEWS' : 'BLOG';
     const sanitizedDescription = sanitizeEditorContent(form.description);
     const sanitizedHighlights = sanitizeEditorContent(form.highlights);
-    const sanitizedStoryUrl = stripHtmlTags(form.storyUrl) || stripHtmlTags(form.articleTitle).toLowerCase().replace(/\s+/g, '-');
     const sanitizedMetaKeywords = form.seo.metaKeywords
       .split(',')
       .map((keyword) => stripHtmlTags(keyword))
@@ -453,18 +552,18 @@ export default function AddStory() {
     return {
       title: stripHtmlTags(form.articleTitle),
       shortTitle: stripHtmlTags(form.shortTitle),
-      slug: stripHtmlTags(form.slugIntro).toLowerCase(),
-      excerpt: stripHtmlTags(form.slugIntro).slice(0, 100),
+      slug: sanitizeSlug(form.slugIntro),
+      excerpt: stripHtmlTags(form.shortTitle).slice(0, 100),
       content: sanitizedDescription,
       highlights: sanitizedHighlights.blocks.length ? sanitizedHighlights : undefined,
-      storyType: form.type === 'STORY' ? 'NEWS' : 'BLOG',
+      storyType,
       status,
       mandal: stripHtmlTags(form.mandal),
       district: form.district ? stripHtmlTags(form.district) : undefined,
       place: form.place ? stripHtmlTags(form.place) : undefined,
       photoCaption: form.photoCaption ? stripHtmlTags(form.photoCaption) : undefined,
       photoCredit: form.photoCredit ? stripHtmlTags(form.photoCredit) : undefined,
-      storyUrl: sanitizedStoryUrl,
+      topicTags: form.topicTags,
       metaTags: {
         metaKeywords: sanitizedMetaKeywords,
         metaDescription: stripHtmlTags(form.seo.metaDescription),
@@ -475,80 +574,117 @@ export default function AddStory() {
   };
 
   const uploadRequiredAssets = async (): Promise<StoryAssetInput[]> => {
-    if (!coverImage || !pdfFile) {
-      throw new Error('Cover image and PDF are required');
+    if (isUploadingImage || isUploadingPdf) {
+      throw new Error('Asset upload in progress');
     }
 
-    const [coverRes, pdfRes] = await Promise.all([
-      storageApi.uploadImage(coverImage),
-      storageApi.uploadPdf(pdfFile),
-    ]);
+    let coverId = coverImageAsset?.id;
+    let pdfId = pdfAsset?.id;
 
-    if (coverRes.data.fileUrl) {
+    if (!coverId && coverImage) {
+      const coverRes = await storageApi.uploadImage(coverImage);
+      coverId = coverRes.data.id;
       setCoverImagePreview(coverRes.data.fileUrl);
+      setCoverImageAsset({
+        ...coverRes.data,
+        name: coverImage.name,
+      });
+    }
+
+    if (!pdfId && pdfFile) {
+      const pdfRes = await storageApi.uploadPdf(pdfFile);
+      pdfId = pdfRes.data.id;
+      setPdfAsset({
+        ...pdfRes.data,
+        name: pdfFile.name,
+      });
+    }
+
+    if (!coverId || !pdfId) {
+      throw new Error('Cover image/PDF not uploaded yet');
     }
 
     return [
-      { mediaId: coverRes.data.id, isCover: true, order: 0 },
-      { mediaId: pdfRes.data.id, isCover: false, order: 1 },
+      { mediaId: coverId, isCover: true, order: 0 },
+      { mediaId: pdfId, isCover: false, order: 1 },
     ];
   };
 
   const handleSaveDraft = async () => {
+    if (isUploadingImage || isUploadingPdf) {
+      toast.error('Please wait for image/PDF upload to finish');
+      return;
+    }
     if (!(await validateForm())) return;
     setIsSaving(true);
 
     try {
       const assets = await uploadRequiredAssets();
-      const payload = { ...prepareFormData('DRAFT'), assets } as unknown as CreateStoryRequest;
+      const formData = prepareFormData('DRAFT');
+
+      const payload: CreateStoryRequest = {
+        ...formData,
+        assets,
+      };
 
       createStoryMut.mutate(payload, {
-        onSuccess: async () => {
+        onSuccess: () => {
           clearDraftStorage();
           toast.success('Story saved as draft');
           navigate('/user/stories/view');
-          setIsSaving(false);
         },
         onError: (error) => {
-          toast.error('Failed to save draft');
+          toast.error(getErrorMessage(error, 'Failed to save draft'));
           console.error(error);
+        },
+        onSettled: () => {
           setIsSaving(false);
         }
       });
     } catch (error) {
-      toast.error('Failed to upload files');
+      toast.error(getErrorMessage(error, 'Failed to upload files'));
       console.error(error);
       setIsSaving(false);
     }
   };
 
   const handleSubmit = async () => {
+    console.log("handleSubmit");
+    console.log(isUploadingImage, isUploadingPdf);
+    if (isUploadingImage || isUploadingPdf) {
+      toast.error('Please wait for image/PDF upload to finish');
+      return;
+    }
     if (!(await validateForm())) return;
     setIsSaving(true);
 
     try {
       const assets = await uploadRequiredAssets();
-      const payload = {
-        ...prepareFormData('SUBMITTED'),
+      const formData = prepareFormData('SUBMITTED');
+
+      const payload: CreateStoryRequest = {
+        ...formData,
         scheduleAt: form.schedulePost ? new Date().toISOString() : undefined,
         assets,
-      } as unknown as CreateStoryRequest;
+      };
 
       createStoryMut.mutate(payload, {
-        onSuccess: async () => {
+        onSuccess: () => {
+          console.log("onSuccess");
           clearDraftStorage();
           toast.success('Story submitted successfully');
           navigate('/user/stories/view');
-          setIsSaving(false);
         },
         onError: (error) => {
-          toast.error('Failed to submit story');
+          toast.error(getErrorMessage(error, 'Failed to submit story'));
           console.error(error);
+        },
+        onSettled: () => {
           setIsSaving(false);
         }
       });
     } catch (error) {
-      toast.error('Failed to upload files');
+      toast.error(getErrorMessage(error, 'Failed to upload files'));
       console.error(error);
       setIsSaving(false);
     }
@@ -565,11 +701,10 @@ export default function AddStory() {
             <button
               className="rounded border bg-gray-100 px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleSaveDraft}
-              disabled={createStoryMut.isPending || isSaving}
+              disabled={createStoryMut.isPending || isSaving || isUploadingImage || isUploadingPdf}
             >
-              {isSaving ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
+              {isSaving && !createStoryMut.isPending ? (
+                <span className="flex items-center bg-gray-200 gap-2 animate-pulse">
                   Saving...
                 </span>
               ) : (
@@ -579,7 +714,7 @@ export default function AddStory() {
             <button
               className="rounded bg-[#243874] px-4 py-2 text-sm text-white disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleSubmit}
-              disabled={createStoryMut.isPending || isSaving}
+              disabled={createStoryMut.isPending || isSaving || isUploadingImage || isUploadingPdf}
             >
               {createStoryMut.isPending ? (
                 <span className="flex items-center gap-2">
@@ -759,9 +894,6 @@ export default function AddStory() {
                 value={form.seo.metaKeywords}
                 onChange={(e) => handleSEOChange('metaKeywords', e.target.value)}
               />
-              <p className="mt-1 text-xs text-gray-500">
-                Use comma-separated keywords (example: politics, local news, election)
-              </p>
             </div>
 
             <div>
@@ -774,9 +906,6 @@ export default function AddStory() {
                 onChange={(e) => handleSEOChange('metaDescription', e.target.value)}
                 value={form.seo.metaDescription}
               />
-              <p className={`mt-1 text-xs ${form.seo.metaDescription.trim().length >= MIN_META_DESCRIPTION_LENGTH && form.seo.metaDescription.trim().length <= MAX_META_DESCRIPTION_LENGTH ? 'text-green-600' : 'text-amber-600'}`}>
-                {form.seo.metaDescription.trim().length}/{MAX_META_DESCRIPTION_LENGTH} characters (recommended {MIN_META_DESCRIPTION_LENGTH}-{MAX_META_DESCRIPTION_LENGTH})
-              </p>
             </div>
           </div>
 
@@ -784,10 +913,10 @@ export default function AddStory() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.3fr_2fr]">
             {/* Image Upload */}
             <div>
-              {coverImage ? (
+              {coverImage || coverImageAsset ? (
                 <div className="relative border-2 border-dashed rounded-lg p-4 h-full min-h-[200px]">
                   <img
-                    src={coverImagePreview || ''}
+                    src={coverImagePreview || coverImageAsset?.fileUrl || ''}
                     alt="Preview"
                     className="w-full h-full object-cover rounded"
                   />
@@ -796,8 +925,9 @@ export default function AddStory() {
                     onClick={() => {
                       setCoverImage(null);
                       setCoverImagePreview(null);
+                      setCoverImageAsset(null);
                     }}
-                    className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                    className="absolute top-2 right-2 text-black bg-gray-300 hover:bg-red-200 rounded-full p-1"
                   >
                     <X size={16} />
                   </button>
@@ -809,12 +939,16 @@ export default function AddStory() {
                     accept="image/*"
                     onChange={handleImageChange}
                     className="hidden"
+                    disabled={isUploadingImage}
                   />
                   <img src={image} className="mb-4 w-14 opacity-80" alt="Upload" />
                   <p className="text-sm font-semibold">
                     Drag and drop an image, or{" "}
                     <span className="text-blue-600">Browse</span>
                   </p>
+                  {isUploadingImage && (
+                    <p className="mt-1 text-xs text-gray-500">Uploading image...</p>
+                  )}
                   <p className="mt-1 text-xs text-gray-500">
                     Minimum 800px width. Max 10MB
                   </p>
@@ -939,18 +1073,21 @@ export default function AddStory() {
 
           {/* PDF Upload */}
           <div>
-            {pdfFile ? (
+            {pdfFile || pdfAsset ? (
               <div className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50">
                 <div className="flex-1">
-                  <p className="font-medium">{pdfFile.name}</p>
+                  <p className="font-medium">{pdfFile?.name || pdfAsset?.name || 'Uploaded PDF'}</p>
                   <p className="text-sm text-gray-500">
-                    {(pdfFile.size / 1024 / 1024).toFixed(2)} MB
+                    {(((pdfFile?.size || pdfAsset?.size || 0) / 1024 / 1024).toFixed(2))} MB
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setPdfFile(null)}
-                  className="text-red-500 hover:text-red-700"
+                  onClick={() => {
+                    setPdfFile(null);
+                    setPdfAsset(null);
+                  }}
+                  className="text-black bg-gray-300 hover:bg-red-200 rounded-full p-1"
                 >
                   <X size={20} />
                 </button>
@@ -962,12 +1099,16 @@ export default function AddStory() {
                   accept=".pdf"
                   onChange={handlePdfChange}
                   className="hidden"
+                  disabled={isUploadingPdf}
                 />
                 <img src={pdf} className="mb-3 w-12 opacity-80" alt="PDF" />
                 <p className="text-sm font-semibold">
                   Drag and drop PDF file here, or{" "}
                   <span className="text-blue-600">Browse</span>
                 </p>
+                {isUploadingPdf && (
+                  <p className="mt-1 text-xs text-gray-500">Uploading PDF...</p>
+                )}
                 <p className="mt-1 text-xs text-gray-500">
                   Max PDF file size is 10MB
                 </p>

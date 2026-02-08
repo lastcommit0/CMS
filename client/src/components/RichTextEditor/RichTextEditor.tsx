@@ -91,12 +91,13 @@ const RichTextEditor = ({
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
         const blocks: StoryBlock[] = [];
+        const textBlockTags = new Set(['P', 'DIV', 'LI', 'BLOCKQUOTE', 'PRE']);
 
         doc.body.childNodes.forEach((node, index) => {
             const el = node as HTMLElement;
             const id = `block_${Date.now()}_${index}`;
 
-            if (el.nodeName === 'P' || el.nodeType === Node.TEXT_NODE) {
+            if (el.nodeType === Node.TEXT_NODE) {
                 const text = el.textContent || "";
                 if (text.trim()) {
                     blocks.push({
@@ -105,7 +106,12 @@ const RichTextEditor = ({
                         data: { text }
                     });
                 }
-            } else if (/^H[1-6]$/.test(el.nodeName)) {
+                return;
+            }
+
+            if (el.nodeType !== Node.ELEMENT_NODE) return;
+
+            if (/^H[1-6]$/.test(el.nodeName)) {
                 blocks.push({
                     id,
                     type: 'heading',
@@ -114,8 +120,31 @@ const RichTextEditor = ({
                         text: el.textContent || ""
                     }
                 });
+                return;
+            }
+
+            if (textBlockTags.has(el.nodeName)) {
+                const text = el.textContent || "";
+                if (text.trim()) {
+                    blocks.push({
+                        id,
+                        type: 'paragraph',
+                        data: { text }
+                    });
+                }
             }
         });
+
+        if (blocks.length === 0) {
+            const fallbackText = doc.body.textContent || "";
+            if (fallbackText.trim()) {
+                blocks.push({
+                    id: `block_${Date.now()}_fallback`,
+                    type: 'paragraph',
+                    data: { text: fallbackText }
+                });
+            }
+        }
 
         return blocks;
     };

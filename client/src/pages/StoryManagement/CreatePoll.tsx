@@ -13,6 +13,7 @@ export default function CreatePoll() {
         limit: 10,
         page: 1
     })
+    console.log(pollsData);
 
     const filteredPolls = (pollsData?.data || []).filter((poll) => {
         const term = searchTerm.trim().toLowerCase();
@@ -51,7 +52,7 @@ export default function CreatePoll() {
                     </Button>
                 </div>
             </header>
-            <div className="bg-white rounded-lg overflow-hidden m-4">
+            <div className="bg-white rounded-md border border-gray-200 overflow-hidden m-4">
                 {isLoading ? (
                     <div className="flex justify-center items-center py-20">
                         <Loader2 className="w-8 h-8 animate-spin text-[#243874]" />
@@ -66,8 +67,9 @@ export default function CreatePoll() {
                             <tr className="">
                                 <th className="px-4 py-3 text-left">ID</th>
                                 <th className="px-4 py-3 text-left">Title</th>
+                                <th className="px-4 py-3 text-left">All Article</th>
                                 <th className="px-4 py-3 text-left">Updated Date</th>
-                                <th className="px-4 py-3 text-left">Expires Date</th>
+                                <th className="px-4 py-3 text-left">Schedule Date</th>
                                 <th className="px-4 py-3 text-left">Status</th>
                                 <th className="px-4 py-3 text-left">Action</th>
                             </tr>
@@ -88,18 +90,32 @@ export default function CreatePoll() {
                                             <div className="font-medium truncate">{limitWords(poll.question, 5)}</div>
                                         </td>
 
-                                        <td className="px-4 py-4">
-                                            {new Date(poll.startsAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        <td className="px-4 py-4 max-w-md">
+                                            <div className="font-medium truncate">{"NO"}</div>
                                         </td>
 
                                         <td className="px-4 py-4">
-                                            {new Date(poll.endsAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                            {new Date(poll.startsAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric',})}{" | "}{new Date(poll.startsAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit'})}
                                         </td>
 
                                         <td className="px-4 py-4">
-                                            <span className={`px-2 py-1 rounded text-xs ${poll.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : poll.status === 'EXPIRED' ? 'bg-gray-100 text-gray-700' : 'bg-red-100 text-red-700'}`}>
-                                                {poll.status === 'ACTIVE' ? 'Active' : poll.status === 'EXPIRED' ? 'Expired' : 'Inactive'}
-                                            </span>
+                                            {new Date(poll.endsAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric',})}{" | "}{new Date(poll.endsAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit'})}
+                                        </td>
+
+                                        <td className="px-4  text-start">
+                                            {poll.status === 'ACTIVE' ? (<span
+                                            className={`inline-flex items-center gap-1 bg-white border rounded-lg px-3 text-xs font-medium`}
+                                            >
+                                            <span className="text-green-500 text-[18px] mb-1">●</span>
+                                            {poll.status}
+                                            </span>)
+                                            : (<span
+                                                className={`inline-flex items-center gap-1 bg-white border rounded-lg px-3 text-xs font-medium`}
+                                            >
+                                                <span className="text-red-500 text-[18px] mb-1">●</span>
+                                                In Active
+                                            </span>)
+                                            }
                                         </td>
 
                                         <td className="px-4 py-4 ">

@@ -10,6 +10,7 @@ export default function ViewStory() {
     limit: 10,
     page: 1
   })
+  console.log(stories);
 
   return (
     <div className="">
@@ -36,7 +37,7 @@ export default function ViewStory() {
         </header>
       </div>
       <div className="border-b"></div>
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden m-4">
+      <div className="bg-white rounded-md border border-gray-200 overflow-hidden m-4">
         <div className="overflow-x-auto">
           {isLoading ? (
             <div className="flex justify-center items-center py-20">
@@ -48,7 +49,7 @@ export default function ViewStory() {
             </div>
           ) : (
             <table className="min-w-[1010px] w-full border-collapse">
-              <thead className="bg-gray-50 text-sm text-gray-600">
+              <thead className="bg-gray-50 text-sm border-b text-gray-600">
                 <tr>
                   <th className="px-4 py-3 text-left">ID</th>
                   <th className="px-4 py-3 text-left">Author</th>
@@ -80,7 +81,7 @@ export default function ViewStory() {
                       </td>
 
                       <td className="px-4 py-4 max-w-md">
-                        <div className="font-medium truncate">{item.articleTitle}</div>
+                        <div className="font-medium truncate">{item.shortTitle}</div>
                         <div className="flex flex-row gap-1">
                           <div className="text-[12px] text-gray-500 flex flex-row items-center">
                             Published On : <span className="text-black/80 text-[10px] ml-1">
@@ -95,20 +96,22 @@ export default function ViewStory() {
                         </div>
                       </td>
 
-                      <td className="px-4 py-4">{item.mandal || 'N/A'}</td>
+                      <td className="px-4 py-4">{item.author.manager?.name || item.author.name || 'N/A'}</td>
 
                       <td className="px-4 py-4 text-start">
-                        <span
-                          className={`inline-flex items-center gap-1 bg-white border rounded-lg px-3 py-1 text-xs font-medium
-                        ${item.status === "PUBLISHED"
-                              ? " text-green-700 border-green-200"
-                              : item.status === "DRAFT"
-                                ? " text-gray-600 border-gray-200"
-                                : " text-red-700 border-red-200"
-                            }`}
+                        {item.status === "Published" ? (<span
+                          className={`inline-flex items-center gap-1 bg-white border rounded-lg px-3 text-xs font-medium`}
                         >
-                          ● {item.status}
-                        </span>
+                          <span className="text-green-700 text-[18px] mb-1">●</span>
+                          {item.status}
+                        </span>)
+                          : (<span
+                            className={`inline-flex items-center gap-1 bg-white border rounded-lg px-3 text-xs font-medium`}
+                          >
+                            <span className="text-red-700 text-[18px] mb-1">●</span>
+                            Unpublished
+                          </span>)
+                        }
                       </td>
                     </tr>
                   ))

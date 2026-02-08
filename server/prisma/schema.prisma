@@ -131,6 +131,7 @@ model Story {
   priority   Int         @default(0)
   scheduleAt DateTime?
   authorId   String
+  topicTags  String[]
 
   mandal       String?
   district     String?
@@ -358,6 +359,8 @@ model MetaTag {
   ogTitle         String?
   ogDescription   String?
   ogImage         String?
+  googleBot       String?
+  excludeIA       Boolean @default(false)
 
   story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
 }

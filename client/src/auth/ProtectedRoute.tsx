@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Navigate, Outlet, useNavigate } from "react-router-dom";
 import { userApi } from "@/services/userService";
+import LoadingSkeleton from "@/components/LoadingSkeleton";
 
-
-export default function ProtectedRoute(){
+export default function ProtectedRoute() {
     const navigate = useNavigate();
     const [checking, setChecking] = useState(true);
     const [allowed, setAllowed] = useState(false);
@@ -41,7 +41,9 @@ export default function ProtectedRoute(){
     }, [navigate]);
 
     if (checking) {
-        return <div className="p-6">Checking session...</div>;
+        return (
+            <LoadingSkeleton/>
+        )
     }
 
     if (!allowed) {
@@ -49,4 +51,5 @@ export default function ProtectedRoute(){
     }
 
     return <Outlet />;
+    
 }

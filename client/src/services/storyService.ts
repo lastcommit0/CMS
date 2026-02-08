@@ -5,16 +5,15 @@ import type {
     StoryAssetInput,
     StoryFormState,
     CreateStoryRequest,
-    UpdateStoryRequest,
     StoryFilters,
-    PaginatedResponse,
-    StoryStats
+    StoryStats,
+    StoryListResponse
 } from "@/types/storyTypes";
 import { STORY_URL } from "@/lib/config";
 
 export const storyApi = {
     getStories: (filters: StoryFilters) =>
-        apiClient.get<ApiResponse<PaginatedResponse<Story>>>(STORY_URL, {
+        apiClient.get<StoryListResponse & { success: boolean }>(STORY_URL, {
             params: filters,
         }),
 

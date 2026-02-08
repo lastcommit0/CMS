@@ -13,7 +13,7 @@ export class StoryService {
         skip,
         take,
         include: {
-          author: { select: { id: true, name: true, email: true } },
+          author: { select: { id: true, name: true, email: true , manager: {select: {name: true}} } },
           sections: { include: { section: true } },
           assets: true,
           meta: true,
@@ -105,10 +105,18 @@ export class StoryService {
           place: data.place,
           photoCaption: data.photoCaption,
           photoCredit: data.photoCredit,
+          topicTags: data.topicTags,
           sections: data.sectionIds
             ? { create: data.sectionIds.map((id: string) => ({ sectionId: id })) }
             : undefined,
-          meta: data.metaTags ? { create: data.metaTags } : undefined,
+          meta: data.metaTags ? {
+            create: {
+              metaKeywords: data.metaTags.metaKeywords,
+              metaDescription: data.metaTags.metaDescription,
+              googleBot: data.metaTags.googleBot,
+              excludeIA: data.metaTags.excludeIA,
+            }
+          } : undefined,
           assets: {
             create: assetsInput.map((asset: any, index: number) => ({
               mediaId: asset.mediaId,
@@ -181,11 +189,27 @@ export class StoryService {
           place: data.place,
           photoCaption: data.photoCaption,
           photoCredit: data.photoCredit,
+          topicTags: data.topicTags,
           sections: data.sectionIds
             ? { create: data.sectionIds.map((sid: string) => ({ sectionId: sid })) }
             : undefined,
           meta: data.metaTags
-            ? { upsert: { create: data.metaTags, update: data.metaTags } }
+            ? {
+              upsert: {
+                create: {
+                  metaKeywords: data.metaTags.metaKeywords,
+                  metaDescription: data.metaTags.metaDescription,
+                  googleBot: data.metaTags.googleBot,
+                  excludeIA: data.metaTags.excludeIA,
+                },
+                update: {
+                  metaKeywords: data.metaTags.metaKeywords,
+                  metaDescription: data.metaTags.metaDescription,
+                  googleBot: data.metaTags.googleBot,
+                  excludeIA: data.metaTags.excludeIA,
+                }
+              }
+            }
             : undefined
         },
         include: {
